@@ -35,7 +35,7 @@
 
 #include "moleculewatcher.h"
 
-#include <chemkit/molecule.h>
+#include "molecule.h"
 
 namespace chemkit {
 

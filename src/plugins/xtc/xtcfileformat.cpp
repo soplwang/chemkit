@@ -37,6 +37,7 @@
 
 #include <QTemporaryFile>
 
+#include <rpc/types.h>
 #include <rpc/xdr.h>
 #include <chemkit/vector3.h>
 #include <chemkit/unitcell.h>
