@@ -52,7 +52,7 @@ option(CHEMKIT_WITH_WEB "Build the chemkit-web library." ON)
 option(CHEMKIT_WITH_WIDGETS "Build the chemkit-widgets library." ON)
 option(CHEMKIT_BUILD_APPS "Build the chemkit applications" ON)
 option(CHEMKIT_BUILD_QT_DESIGNER_PLUGINS "Build the chemkit QtDesigner plugins." OFF)
-option(CHEMKIT_BUILD_EXAMPLES "Build the chemkit examples." ON)
+option(CHEMKIT_BUILD_EXAMPLES "Build the chemkit examples." OFF)
 option(CHEMKIT_BUILD_TESTS "Build the chemkit tests." OFF)
 
 add_subdirectory(src)
