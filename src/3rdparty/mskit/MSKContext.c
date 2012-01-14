@@ -31,12 +31,18 @@ MSKContext *MSKContextNew()
     //ColorInit(G);
     SphereInit(G);
 
-    // Settings
+    // Map Settings
     SettingSet(G, cSetting_hash_max, 100);
+    // Triangle Settings
     SettingSet(G, cSetting_triangle_max_passes, 5);
     SettingSet(G, cSetting_fit_tolerance, 0.0000001F);
     SettingSet(G, cSetting_fit_iterations, 1000);
     SettingSet(G, cSetting_fit_kabsch, 0);
+    // Surface Settings
+    SettingSet(G, cSetting_surface_best, 0.25F);
+    SettingSet(G, cSetting_surface_normal, 0.5F);
+    SettingSet(G, cSetting_surface_poor, 0.85F);
+    SettingSet(G, cSetting_surface_miserable, 2.0F);
     
     G->Ready = true;
   }
@@ -51,4 +57,12 @@ void MSKContextFree(MSKContext * G)
     //ColorFree(G);
     FreeP(G);
   }
+}
+
+void MSKContextClean(MSKContext * G)
+{
+  G->Ready = true;
+  G->Interrupt = false;
+  G->Stage = 0;
+  G->Progress = 0;
 }

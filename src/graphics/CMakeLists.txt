@@ -87,11 +87,13 @@ set(MOC_HEADERS
 qt4_wrap_cpp(MOC_SOURCES ${MOC_HEADERS})
 qt4_add_resources(RCC_SOURCES shaders.qrc)
 
+aux_source_directory(../3rdparty/mskit/ MSKIT_SOURCES)
+
 add_definitions(
   -DCHEMKIT_GRAPHICS_LIBRARY
 )
 
-add_chemkit_library(chemkit-graphics ${SOURCES} ${MOC_SOURCES} ${RCC_SOURCES})
+add_chemkit_library(chemkit-graphics ${SOURCES} ${MOC_SOURCES} ${RCC_SOURCES} ${MSKIT_SOURCES})
 target_link_libraries(chemkit-graphics ${CHEMKIT_LIBRARIES} ${QT_LIBRARIES} ${OPENGL_LIBRARIES})
 
 # install header files

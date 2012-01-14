@@ -1136,7 +1136,7 @@ float MatrixFitRMSTTTf(MSKContext * G, int n, float *v1, float *v2, float *wt,
 
   if(n > 1) {
     int got_kabsch = false;
-    int fit_kabsch = SettingGetGlobal_i(G, cSetting_fit_kabsch);
+    int fit_kabsch = SettingGet(G, cSetting_fit_kabsch);
     if(fit_kabsch) {
 
       /* WARNING: Kabsch isn't numerically stable */

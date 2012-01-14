@@ -31,9 +31,9 @@ SolventDot *SolventDotNew(MSKContext * G,
 	                         SurfaceJobAtomInfo * atom_info,
 	                         float probe_radius, SphereRec * sp,
 	                         int *present,
-	                         int circumscribe, int surface_mode,
+	                         int circumscribe,
 	                         int surface_solvent, int cavity_cull,
-	                         int all_visible_flag, float max_vdw,
+	                         float max_vdw,
 	                         int cavity_mode, float cavity_radius, 
 	                         float cavity_cutoff);
 

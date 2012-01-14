@@ -38,18 +38,24 @@ typedef struct _MSKContext {
     int cSetting_fit_iterations;
     int cSetting_fit_kabsch;
     double cSetting_fit_tolerance;
+    float cSetting_surface_best;
+    float cSetting_surface_normal;
+    float cSetting_surface_poor;
+    float cSetting_surface_miserable;
   } Settings;
 
 } MSKContext;
 
 MSKContext *MSKContextNew();
 void MSKContextFree(MSKContext * G);
+void MSKContextClean(MSKContext * G);
 
 #define OrthoBusyStage(G, S)     ((G)->Stage = (S), (G)->Progress = 0)
 #define OrthoBusyFast(G, A, E)   ((G)->Progress = (A) * 100 / (E))
+#define OrthoStage(G)            ((G)->Stage)
+#define OrthoFast(G)             ((G)->Progress)
 
-#define SettingGetGlobal_i(G, K) ((G)->Settings.K)
-#define SettingGet(G, K)         ((G)->Settings.K)
 #define SettingSet(G, K, V)      ((G)->Settings.K = (V))
+#define SettingGet(G, K)         ((G)->Settings.K)
 
 #endif

@@ -43,19 +43,109 @@ void SurfaceJobPurgeResult(MSKContext * G, SurfaceJob * I)
   I->S = NULL;
 }
 
-SurfaceJob *SurfaceJobNew(MSKContext * G)
+SurfaceJob *SurfaceJobNew(MSKContext * G,
+	                         float *coord, SurfaceJobAtomInfo * atom_info,
+	                         float probe_radius, float max_vdw,
+	                         int surface_quality, int surface_type,
+	                         int surface_solvent, int cavity_cull,
+	                         int cavity_mode, float cavity_radius,
+	                         float cavity_cutoff, float trim_cutoff, float trim_factor)
 {
   OOCalloc(G, SurfaceJob);
+
+  if (I) {
+  	I->coord = coord;
+  	I->atomInfo = atom_info;
+  	I->maxVdw = max_vdw;
+  	I->surfaceQuality = surface_quality;
+  	I->surfaceType = surface_type;
+  	I->surfaceSolvent = surface_solvent;
+  	I->probeRadius = probe_radius;
+  	I->trimCutoff = trim_cutoff;
+  	I->trimFactor = trim_factor;
+  	I->cavityCull = cavity_cull;
+  	I->cavityMode = cavity_mode;
+  	I->cavityRadius = cavity_radius;
+  	I->cavityCutoff = cavity_cutoff;
+
+    if(surface_quality >= 4) {
+      /* totally impractical */
+      I->pointSep = SettingGet(G, cSetting_surface_best) / 4;
+      I->sphereIndex = 4;
+      I->solventSphereIndex = 4;
+      I->circumscribe = 91;
+    } else {
+      switch (surface_quality) {
+        case 3:
+          /* nearly impractical */
+          I->pointSep = SettingGet(G, cSetting_surface_best) / 3;
+          I->sphereIndex = 4;
+          I->solventSphereIndex = 3;
+          I->circumscribe = 71;
+          break;
+        case 2:
+          /* nearly perfect */
+          I->pointSep = SettingGet(G, cSetting_surface_best) / 2;
+          I->sphereIndex = 3;
+          I->solventSphereIndex = 3;
+          I->circumscribe = 41;
+          break;
+        case 1:
+          /* good */
+          I->pointSep = SettingGet(G, cSetting_surface_best);
+          I->sphereIndex = 2;
+          I->solventSphereIndex = 3;
+          I->circumscribe = 40;
+          break;
+        case 0:
+          /* 0 - normal */
+          I->pointSep = SettingGet(G, cSetting_surface_normal);
+          I->sphereIndex = 1;
+          I->solventSphereIndex = 2;
+          if (surface_type == 6)
+            I->circumscribe = 30;
+          break;
+        case -1:
+          /* -1 poor */
+          I->pointSep = SettingGet(G, cSetting_surface_poor);
+          I->sphereIndex = 1;
+          I->solventSphereIndex = 2;
+          if (surface_type == 6)
+            I->circumscribe = 10;
+          break;
+        case -2:
+          /* -2 god awful */
+          I->pointSep = SettingGet(G, cSetting_surface_poor) * 1.5F;
+          I->sphereIndex = 1;
+          I->solventSphereIndex = 1;
+          break;
+        case -3:
+          /* -3 miserable */
+          I->pointSep = SettingGet(G, cSetting_surface_miserable);
+          I->sphereIndex = 1;
+          I->solventSphereIndex = 1;
+          break;
+        default:
+          I->pointSep = SettingGet(G, cSetting_surface_miserable) * 1.18F;
+          I->sphereIndex = 0;
+          I->solventSphereIndex = 1;
+          break;
+      }
+    }
+
+    if (!surface_solvent)
+      I->circumscribe = 0;
+  }
+  
   return I;
 }
 
 void SurfaceJobFree(MSKContext * G, SurfaceJob * I)
 {
   SurfaceJobPurgeResult(G, I);
-  VLAFreeP(I->coord);
   VLAFreeP(I->presentVla);
   VLAFreeP(I->atomInfo);
-  VLAFreeP(I->carveVla);
+  VLAFreeP(I->coord);
   OOFreeP(I);
 }
 
@@ -67,6 +157,9 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
   int n_present = I->nPresent;
   SphereRec *sp = G->Sphere->Sphere[I->sphereIndex];
   SphereRec *ssp = G->Sphere->Sphere[I->solventSphereIndex];
+
+  MSKContextClean(G);
+  G->Ready = false;
 
   OrthoBusyStage(G, 0);
 
@@ -99,7 +192,6 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
     SolventDot *sol_dot = NULL;
     float *v = I->V;
     float *vn = I->VN;
-    MapType *carve_map = NULL;
     float probe_radius = I->probeRadius;
     int circumscribe = I->circumscribe;
     int surface_type = I->surfaceType;
@@ -112,8 +204,8 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
 
     sol_dot = SolventDotNew(G, I->coord, I->atomInfo, probe_radius,
                             ssp, present_vla,
-                            circumscribe, I->surfaceMode, I->surfaceSolvent,
-                            I->cavityCull, I->allVisibleFlag, I->maxVdw,
+                            circumscribe, I->surfaceSolvent,
+                            I->cavityCull, I->maxVdw,
                             I->cavityMode, I->cavityRadius, I->cavityCutoff);
 
     if((!sol_dot) || (G->Interrupt))
@@ -766,8 +858,9 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
       VLASizeForSure(I->V, float, 1);
       VLASizeForSure(I->VN, float, 1);
     }
-    if(carve_map)
-      MapFree(carve_map);
   }
+  
+  G->Ready = true;
+
   return ok;
 }

@@ -35,9 +35,9 @@ SolventDot *SolventDotNew(MSKContext * G,
 	                         SurfaceJobAtomInfo * atom_info,
 	                         float probe_radius, SphereRec * sp,
 	                         int *present,
-	                         int circumscribe, int surface_mode,
+	                         int circumscribe,
 	                         int surface_solvent, int cavity_cull,
-	                         int all_visible_flag, float max_vdw,
+	                         float max_vdw,
 	                         int cavity_mode, float cavity_radius, 
 	                         float cavity_cutoff)
 {
@@ -51,15 +51,15 @@ SolventDot *SolventDotNew(MSKContext * G,
   Vector3f *sp_dot = sp->dot;
   OOCalloc(G, SolventDot);
 
-  /*  printf("%p %p %p %f %p %p %p %d %d %d %d %d %f\n",
+  /*  printf("%p %p %p %f %p %p %p %d %d %d %f\n",
      G,
      coord,
      atom_info,
      probe_radius,sp,
      extent,present,
-     circumscribe,  surface_mode, 
+     circumscribe, 
      surface_solvent,  cavity_cull,
-     all_visible_flag, max_vdw);
+     max_vdw);
    */
 
   stopDot = n_coord * sp->nDot + 2 * circumscribe;

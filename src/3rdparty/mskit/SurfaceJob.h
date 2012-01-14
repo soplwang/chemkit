@@ -34,26 +34,23 @@ typedef struct {
   SurfaceJobAtomInfo *atomInfo;
 
   float maxVdw;
-  int allVisibleFlag;
 
   int nPresent;
   int *presentVla;
 
   int solventSphereIndex, sphereIndex;
-
-  int surfaceType;
   int circumscribe;
-  float probeRadius;
-  float carveCutoff;
-  float *carveVla;
 
-  int surfaceMode;
+  int surfaceQuality;
+  int surfaceType;
   int surfaceSolvent;
-  int cavityCull;
+
+  float probeRadius;
   float pointSep;
   float trimCutoff;
   float trimFactor;
 
+  int cavityCull;
   int cavityMode;
   float cavityRadius;
   float cavityCutoff;
@@ -65,7 +62,13 @@ typedef struct {
 } SurfaceJob;
 
 
-SurfaceJob *SurfaceJobNew(MSKContext * G);
+SurfaceJob *SurfaceJobNew(MSKContext * G,
+	                         float *coord, SurfaceJobAtomInfo * atom_info,
+	                         float probe_radius, float max_vdw,
+	                         int surface_quality, int surface_type,
+	                         int surface_solvent, int cavity_cull,
+	                         int cavity_mode, float cavity_radius,
+	                         float cavity_cutoff, float trim_cutoff, float trim_factor);
 
 void SurfaceJobFree(MSKContext * G, SurfaceJob * I);
 
