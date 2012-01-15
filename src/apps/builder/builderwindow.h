@@ -44,6 +44,7 @@
 #include <chemkit/moleculefileformat.h>
 #include <chemkit/graphicsview.h>
 #include <chemkit/graphicsmoleculeitem.h>
+#include <chemkit/graphicssolventsurfaceitem.h>
 
 class BuilderTool;
 class EnergyMinimizer;
@@ -73,6 +74,10 @@ public:
     EnergyMinimizer* energyMinimizer() const;
     void beginMoleculeEdit();
     void endMoleculeEdit();
+
+    // surface
+    void showSES(bool show);
+    void showSAS(bool show);
 
     // view
     chemkit::GraphicsView* view() const;
@@ -123,6 +128,8 @@ private:
     chemkit::MoleculeFile *m_file;
     chemkit::Molecule *m_molecule;
     chemkit::GraphicsMoleculeItem *m_moleculeItem;
+    chemkit::GraphicsSolventSurfaceItem *m_sesItem;
+    chemkit::GraphicsSolventSurfaceItem *m_sasItem;
     chemkit::MoleculeEditor *m_editor;
     BuilderTool *m_tool;
     BuilderTool *m_navigateTool;
@@ -130,6 +137,8 @@ private:
     BuilderTool *m_manipulateTool;
     EnergyMinimizer *m_energyMinimizer;
     bool m_inMoleculeEdit;
+    bool m_showSES;
+    bool m_showSAS;
 };
 
 #endif // BUILDERWINDOW_H

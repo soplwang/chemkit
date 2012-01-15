@@ -33,8 +33,8 @@
 **
 ******************************************************************************/
 
-#ifndef CHEMKIT_GRAPHICSSESSURFACEITEM_H
-#define CHEMKIT_GRAPHICSSESSURFACEITEM_H
+#ifndef CHEMKIT_GRAPHICSSOLVENTSURFACEITEM_H
+#define CHEMKIT_GRAPHICSSOLVENTSURFACEITEM_H
 
 #include "graphics.h"
 
@@ -42,14 +42,70 @@
 
 namespace chemkit {
 
-class GraphicsSESSurfaceItemPrivate;
+class Molecule;
+class GraphicsSolventSurfaceItemPrivate;
 
-class CHEMKIT_GRAPHICS_EXPORT GraphicsSESSurfaceItem : public GraphicsItem
+class CHEMKIT_GRAPHICS_EXPORT GraphicsSolventSurfaceItem : public GraphicsItem
 {
 public:
-    GraphicsSESSurfaceItem();
+    // enumerations
+    enum SurfaceQuality {
+        SurfaceQualityMoreMiserable = -4,
+        SurfaceQualityMiserable = -3,
+        SurfaceQualityMorePoor = -2,
+        SurfaceQualityPoor = -1,
+        SurfaceQualityNormal = 0,
+        SurfaceQualityGood = 1,
+        SurfaceQualityNearPerfect = 2,
+        SurfaceQualityPerfect = 3,
+        SurfaceQualityImpractical = 4
+    };
+
+    enum SurfaceType {
+        SurfaceTypeSolid = 0,
+        SurfaceTypeDots = 1,
+        SurfaceTypeTriangles = 2,
+        SurfaceTypeType3 = 3,
+        SurfaceTypeType4 = 4,
+        SurfaceTypeType5 = 5,
+        SurfaceTypeType6 = 6
+    };
+
+    enum SurfaceSolventType {
+        SurfaceSolventTypeExcluded = 0,
+        SurfaceSolventTypeAccessible = 1
+    };
+
+    // construction and destruction
+    GraphicsSolventSurfaceItem(const Molecule *molecule = 0, SurfaceSolventType type = SurfaceSolventTypeExcluded);
+    ~GraphicsSolventSurfaceItem();
+
+    // properties
+    void setMolecule(const Molecule *molecule);
+    const Molecule* molecule() const;
+    void setQuality(SurfaceQuality quality);
+    SurfaceQuality quality() const;
+    void setSurfaceType(SurfaceType type);
+    SurfaceType surfaceType() const;
+    void setSurfaceSolventType(SurfaceSolventType type);
+    SurfaceSolventType surfaceSolventType() const;
+    void setProbeRadius(Real radius);
+    Real probeRadius() const;
+    void setColor(const QColor &color);
+    QColor color() const;
+
+    // drawing
+    virtual void paint(GraphicsPainter *painter);
+
+private:
+    // internal methods
+    void setCalculated(bool calculated);
+    Real maxVdwRadius();
+
+private:
+    GraphicsSolventSurfaceItemPrivate* const d;
 };
 
 } // end chemkit namespace
 
-#endif // CHEMKIT_GRAPHICSSESSURFACEITEM_H
+#endif // CHEMKIT_GRAPHICSSOLVENTSURFACEITEM_H

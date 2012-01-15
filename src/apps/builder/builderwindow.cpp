@@ -41,6 +41,7 @@
 #include <chemkit/atom.h>
 #include <chemkit/bondpredictor.h>
 #include <chemkit/graphicscamera.h>
+#include <chemkit/graphicsmaterial.h>
 
 #include "buildertool.h"
 #include "navigatetool.h"
@@ -62,6 +63,8 @@ BuilderWindow::BuilderWindow(QWidget *parent)
     m_file = 0;
     m_molecule = 0;
     m_inMoleculeEdit = false;
+    m_showSES = false;
+    m_showSAS = false;
 
     // setup ui
     ui->setupUi(this);
@@ -113,6 +116,8 @@ BuilderWindow::BuilderWindow(QWidget *parent)
 
     // setup view
     m_moleculeItem = 0;
+    m_sesItem = 0;
+    m_sasItem = 0;
 
     // setup molecule editor
     m_editor = new chemkit::MoleculeEditor;
@@ -215,6 +220,26 @@ void BuilderWindow::setMolecule(chemkit::Molecule *molecule)
         m_moleculeItem = 0;
     }
 
+    if (m_sesItem) {
+        if(m_showSES) {
+            ui->graphicsView->deleteItem(m_sesItem);
+        } else {
+            delete m_sesItem;
+        }
+        m_sesItem = 0;
+        m_showSES = false;
+    }
+
+    if (m_sasItem) {
+        if(m_showSAS) {
+            ui->graphicsView->deleteItem(m_sasItem);
+        } else {
+            delete m_sasItem;
+        }
+        m_sasItem = 0;
+        m_showSAS = false;
+    }
+
     // add new molecule item
     if(molecule){
         m_moleculeItem = new chemkit::GraphicsMoleculeItem(molecule);
@@ -231,6 +256,52 @@ void BuilderWindow::setMolecule(chemkit::Molecule *molecule)
 
     // notify observers
     emit moleculeChanged(molecule);
+}
+
+void BuilderWindow::showSES(bool show)
+{
+    if(m_showSES == show){
+        return;
+    }
+
+    m_showSES = show;
+
+    if (m_showSES) {
+        if (!m_sesItem) {
+            m_sesItem = new chemkit::GraphicsSolventSurfaceItem(m_molecule, chemkit::GraphicsSolventSurfaceItem::SurfaceSolventTypeExcluded);
+            m_sesItem->setColor(Qt::red);
+            m_sesItem->material()->setSpecularColor(Qt::transparent);
+            m_sesItem->setOpacity(0.75f);
+        }
+        ui->graphicsView->addItem(m_sesItem);
+    } else {
+        if (m_sesItem) {
+            ui->graphicsView->removeItem(m_sesItem);
+        }
+    }
+}
+
+void BuilderWindow::showSAS(bool show)
+{
+    if(m_showSAS == show){
+        return;
+    }
+
+    m_showSAS = show;
+
+    if (m_showSAS) {
+        if (!m_sasItem) {
+            m_sasItem = new chemkit::GraphicsSolventSurfaceItem(m_molecule, chemkit::GraphicsSolventSurfaceItem::SurfaceSolventTypeAccessible);
+            m_sasItem->setColor(Qt::green);
+            m_sasItem->material()->setSpecularColor(Qt::transparent);
+            m_sasItem->setOpacity(0.75f);
+        }
+        ui->graphicsView->addItem(m_sasItem);
+    } else {
+        if (m_sasItem) {
+            ui->graphicsView->removeItem(m_sasItem);
+        }
+    }
 }
 
 chemkit::Molecule* BuilderWindow::molecule() const

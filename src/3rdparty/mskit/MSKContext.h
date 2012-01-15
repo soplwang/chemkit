@@ -38,10 +38,6 @@ typedef struct _MSKContext {
     int cSetting_fit_iterations;
     int cSetting_fit_kabsch;
     double cSetting_fit_tolerance;
-    float cSetting_surface_best;
-    float cSetting_surface_normal;
-    float cSetting_surface_poor;
-    float cSetting_surface_miserable;
   } Settings;
 
 } MSKContext;

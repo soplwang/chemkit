@@ -45,31 +45,21 @@
 DisplaySettingsDock::DisplaySettingsDock(BuilderWindow *builder)
     : QDockWidget(builder),
       ui(new Ui::DisplaySettingsDock),
-      m_builder(builder),
-      m_showHydrogens(false)
+      m_builder(builder)
 {
     ui->setupUi(this);
 
     connect(ui->moleculeTypeComboBox, SIGNAL(currentIndexChanged(int)), SLOT(moleculeDisplayTypeChanged(int)));
     connect(ui->showHydrogensCheckBox, SIGNAL(clicked(bool)), SLOT(showHydrogensCheckClicked(bool)));
     connect(ui->showBondOrderCheckBox, SIGNAL(clicked(bool)), SLOT(showBondOrderCheckClicked(bool)));
+    connect(ui->showSESCheckBox, SIGNAL(clicked(bool)), SLOT(showSESCheckClicked(bool)));
+    connect(ui->showSASCheckBox, SIGNAL(clicked(bool)), SLOT(showSASCheckClicked(bool)));
     connect(builder, SIGNAL(moleculeChanged(chemkit::Molecule*)), SLOT(moleculeChanged(chemkit::Molecule*)));
 }
 
 DisplaySettingsDock::~DisplaySettingsDock()
 {
     delete ui;
-}
-
-void DisplaySettingsDock::setShowHydrogens(bool showHydrogens)
-{
-    m_showHydrogens = showHydrogens;
-
-    chemkit::GraphicsMoleculeItem *moleculeItem = m_builder->moleculeItem();
-    if(moleculeItem)
-        moleculeItem->setHydrogensVisible(showHydrogens);
-
-    m_builder->view()->update();
 }
 
 void DisplaySettingsDock::moleculeDisplayTypeChanged(int index)
@@ -88,14 +78,32 @@ void DisplaySettingsDock::moleculeDisplayTypeChanged(int index)
 
 void DisplaySettingsDock::showHydrogensCheckClicked(bool checked)
 {
-    setShowHydrogens(checked);
+    chemkit::GraphicsMoleculeItem *moleculeItem = m_builder->moleculeItem();
+    if(moleculeItem) {
+        moleculeItem->setHydrogensVisible(checked);
+    }
+    m_builder->view()->update();
 }
 
 void DisplaySettingsDock::showBondOrderCheckClicked(bool checked)
 {
     chemkit::GraphicsMoleculeItem *moleculeItem = m_builder->moleculeItem();
-    if(moleculeItem)
+    if(moleculeItem) {
         moleculeItem->setBondOrderVisible(checked);
+    }
+    m_builder->view()->update();
+}
+
+void DisplaySettingsDock::showSESCheckClicked(bool checked)
+{
+    m_builder->showSES(checked);
+    m_builder->view()->update();
+}
+
+void DisplaySettingsDock::showSASCheckClicked(bool checked)
+{
+    m_builder->showSAS(checked);
+    m_builder->view()->update();
 }
 
 void DisplaySettingsDock::moleculeChanged(chemkit::Molecule *molecule)
@@ -103,4 +111,8 @@ void DisplaySettingsDock::moleculeChanged(chemkit::Molecule *molecule)
     Q_UNUSED(molecule);
 
     moleculeDisplayTypeChanged(ui->moleculeTypeComboBox->currentIndex());
+    showHydrogensCheckClicked(ui->showHydrogensCheckBox->checkState());
+    showBondOrderCheckClicked(ui->showBondOrderCheckBox->checkState());
+    showSESCheckClicked(ui->showSESCheckBox->checkState());
+    showSASCheckClicked(ui->showSASCheckBox->checkState());
 }

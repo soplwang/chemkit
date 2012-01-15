@@ -64,7 +64,7 @@ typedef struct {
 
 SurfaceJob *SurfaceJobNew(MSKContext * G,
 	                         float *coord, SurfaceJobAtomInfo * atom_info,
-	                         float probe_radius, float max_vdw,
+	                         float max_vdw, float probe_radius,
 	                         int surface_quality, int surface_type,
 	                         int surface_solvent, int cavity_cull,
 	                         int cavity_mode, float cavity_radius,

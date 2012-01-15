@@ -45,7 +45,7 @@ void SurfaceJobPurgeResult(MSKContext * G, SurfaceJob * I)
 
 SurfaceJob *SurfaceJobNew(MSKContext * G,
 	                         float *coord, SurfaceJobAtomInfo * atom_info,
-	                         float probe_radius, float max_vdw,
+	                         float max_vdw, float probe_radius,
 	                         int surface_quality, int surface_type,
 	                         int surface_solvent, int cavity_cull,
 	                         int cavity_mode, float cavity_radius,
@@ -68,9 +68,14 @@ SurfaceJob *SurfaceJobNew(MSKContext * G,
   	I->cavityRadius = cavity_radius;
   	I->cavityCutoff = cavity_cutoff;
 
+#define SURFACE_QUALITY_BEST_SEP       0.25F
+#define SURFACE_QUALITY_NORMAL_SEP     0.5F
+#define SURFACE_QUALITY_POOR_SEP       0.85F
+#define SURFACE_QUALITY_MISERABLE_SEP  2.0F
+
     if(surface_quality >= 4) {
       /* totally impractical */
-      I->pointSep = SettingGet(G, cSetting_surface_best) / 4;
+      I->pointSep = SURFACE_QUALITY_BEST_SEP / 4;
       I->sphereIndex = 4;
       I->solventSphereIndex = 4;
       I->circumscribe = 91;
@@ -78,28 +83,28 @@ SurfaceJob *SurfaceJobNew(MSKContext * G,
       switch (surface_quality) {
         case 3:
           /* nearly impractical */
-          I->pointSep = SettingGet(G, cSetting_surface_best) / 3;
+          I->pointSep = SURFACE_QUALITY_BEST_SEP / 3;
           I->sphereIndex = 4;
           I->solventSphereIndex = 3;
           I->circumscribe = 71;
           break;
         case 2:
           /* nearly perfect */
-          I->pointSep = SettingGet(G, cSetting_surface_best) / 2;
+          I->pointSep = SURFACE_QUALITY_BEST_SEP / 2;
           I->sphereIndex = 3;
           I->solventSphereIndex = 3;
           I->circumscribe = 41;
           break;
         case 1:
           /* good */
-          I->pointSep = SettingGet(G, cSetting_surface_best);
+          I->pointSep = SURFACE_QUALITY_BEST_SEP;
           I->sphereIndex = 2;
           I->solventSphereIndex = 3;
           I->circumscribe = 40;
           break;
         case 0:
           /* 0 - normal */
-          I->pointSep = SettingGet(G, cSetting_surface_normal);
+          I->pointSep = SURFACE_QUALITY_NORMAL_SEP;
           I->sphereIndex = 1;
           I->solventSphereIndex = 2;
           if (surface_type == 6)
@@ -107,7 +112,7 @@ SurfaceJob *SurfaceJobNew(MSKContext * G,
           break;
         case -1:
           /* -1 poor */
-          I->pointSep = SettingGet(G, cSetting_surface_poor);
+          I->pointSep = SURFACE_QUALITY_POOR_SEP;
           I->sphereIndex = 1;
           I->solventSphereIndex = 2;
           if (surface_type == 6)
@@ -115,18 +120,18 @@ SurfaceJob *SurfaceJobNew(MSKContext * G,
           break;
         case -2:
           /* -2 god awful */
-          I->pointSep = SettingGet(G, cSetting_surface_poor) * 1.5F;
+          I->pointSep = SURFACE_QUALITY_POOR_SEP * 1.5F;
           I->sphereIndex = 1;
           I->solventSphereIndex = 1;
           break;
         case -3:
           /* -3 miserable */
-          I->pointSep = SettingGet(G, cSetting_surface_miserable);
+          I->pointSep = SURFACE_QUALITY_MISERABLE_SEP;
           I->sphereIndex = 1;
           I->solventSphereIndex = 1;
           break;
         default:
-          I->pointSep = SettingGet(G, cSetting_surface_miserable) * 1.18F;
+          I->pointSep = SURFACE_QUALITY_MISERABLE_SEP * 1.18F;
           I->sphereIndex = 0;
           I->solventSphereIndex = 1;
           break;
