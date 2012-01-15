@@ -45,7 +45,8 @@
 DisplaySettingsDock::DisplaySettingsDock(BuilderWindow *builder)
     : QDockWidget(builder),
       ui(new Ui::DisplaySettingsDock),
-      m_builder(builder)
+      m_builder(builder),
+      m_batch(false)
 {
     ui->setupUi(this);
 
@@ -74,6 +75,10 @@ void DisplaySettingsDock::moleculeDisplayTypeChanged(int index)
         moleculeItem->setDisplayType(chemkit::GraphicsMoleculeItem::Stick);
     else if(index == 2)
         moleculeItem->setDisplayType(chemkit::GraphicsMoleculeItem::SpaceFilling);
+
+    if(!m_batch) {
+        m_builder->view()->update();
+    }
 }
 
 void DisplaySettingsDock::showHydrogensCheckClicked(bool checked)
@@ -82,7 +87,9 @@ void DisplaySettingsDock::showHydrogensCheckClicked(bool checked)
     if(moleculeItem) {
         moleculeItem->setHydrogensVisible(checked);
     }
-    m_builder->view()->update();
+    if(!m_batch) {
+        m_builder->view()->update();
+    }
 }
 
 void DisplaySettingsDock::showBondOrderCheckClicked(bool checked)
@@ -91,28 +98,36 @@ void DisplaySettingsDock::showBondOrderCheckClicked(bool checked)
     if(moleculeItem) {
         moleculeItem->setBondOrderVisible(checked);
     }
-    m_builder->view()->update();
+    if(!m_batch) {
+        m_builder->view()->update();
+    }
 }
 
 void DisplaySettingsDock::showSESCheckClicked(bool checked)
 {
     m_builder->showSES(checked);
-    m_builder->view()->update();
+    if(!m_batch) {
+        m_builder->view()->update();
+    }
 }
 
 void DisplaySettingsDock::showSASCheckClicked(bool checked)
 {
     m_builder->showSAS(checked);
-    m_builder->view()->update();
+    if(!m_batch) {
+        m_builder->view()->update();
+    }
 }
 
 void DisplaySettingsDock::moleculeChanged(chemkit::Molecule *molecule)
 {
     Q_UNUSED(molecule);
 
+    m_batch = true;
     moleculeDisplayTypeChanged(ui->moleculeTypeComboBox->currentIndex());
     showHydrogensCheckClicked(ui->showHydrogensCheckBox->checkState());
     showBondOrderCheckClicked(ui->showBondOrderCheckBox->checkState());
     showSESCheckClicked(ui->showSESCheckBox->checkState());
     showSASCheckClicked(ui->showSASCheckBox->checkState());
+    m_batch = false;
 }

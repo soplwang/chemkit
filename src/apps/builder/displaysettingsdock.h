@@ -73,6 +73,7 @@ private:
     BuilderWindow *m_builder;
     chemkit::MoleculeWatcher *m_watcher;
     chemkit::GraphicsMoleculeItem *m_moleculeItem;
+    bool m_batch;
 };
 
 #endif // DISPLAYSETTINGSDOCK_H
