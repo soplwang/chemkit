@@ -93,9 +93,9 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
                                         -3.0F, 0.2F, 2.0F);
 
         if (job && SurfaceJobRun(_ctx_holder.ctx, job)) {
-            QVector<Point3f> verticies(job->N);
-            QVector<Vector3f> normals(job->N);
-            QVector<unsigned short> indicies(job->NT);
+            QVector<Point3f> verticies;
+            QVector<Vector3f> normals;
+            QVector<unsigned short> indicies;
 
             fprintf(stderr, "job->N = %d, job->NT = %d\n", job->N, job->NT);
 
@@ -114,7 +114,7 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
 
             buffer->setVerticies(verticies);
             buffer->setNormals(normals);
-            //buffer->setIndicies(indicies);
+            buffer->setIndicies(indicies);
 
             SurfaceJobFree(_ctx_holder.ctx, job);
 
