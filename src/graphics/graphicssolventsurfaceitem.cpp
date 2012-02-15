@@ -104,9 +104,16 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
                 normals.push_back(Point3f(np[0], np[1], np[2]));
                 fprintf(stderr, "v = %f,%f,%f  n = %f,%f,%f\n", vp[0], vp[1], vp[2], np[0], np[1], np[2]);
             }
-            for (int *tp = job->T, *e = (job->T + job->NT); tp < e; tp++) {
+            fprintf(stderr, "Triangles:\n");
+            for (int *tp = job->T, *e = (job->T + job->NT*3); tp < e; tp++) {
                 indicies.push_back(static_cast<unsigned short>(*tp));
                 fprintf(stderr, "%d ", *tp);
+            }
+            fprintf(stderr, "\nStrips:\n");
+            for (int *sp = job->S; *sp;) {
+            	//for (int cnt = *sp++; cnt > 0; cnt--) {
+            		fprintf(stderr, "%d ", *sp++);
+            	//}
             }
 
             // create vertex buffer
