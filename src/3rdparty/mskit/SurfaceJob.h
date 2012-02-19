@@ -1,4 +1,4 @@
-/* 
+/*
 A* -------------------------------------------------------------------
 B* This file contains source code for the PyMOL computer program
 C* Copyright (c) Schrodinger, LLC. 
@@ -56,8 +56,13 @@ typedef struct {
   float cavityCutoff;
 
   /* results */
+  int N, NT;
   float *V, *VN;
-  int N, *T, *S, NT;
+  int *T, *S;
+
+  int oneColorFlag, oneAlphaFlag;
+  int oneColor, *VC;
+  float oneAlpha, *VA;
 
 } SurfaceJob;
 
@@ -73,6 +78,8 @@ SurfaceJob *SurfaceJobNew(MSKContext * G,
 void SurfaceJobFree(MSKContext * G, SurfaceJob * I);
 
 int SurfaceJobRun(MSKContext * G, SurfaceJob * I);
+
+void SurfaceJobColoring(MSKContext *G, SurfaceJob * I, int *colors, float *transp);
 
 void SurfaceJobPurgeResult(MSKContext * G, SurfaceJob * I);
 

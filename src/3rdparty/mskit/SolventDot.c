@@ -268,8 +268,7 @@ SolventDot *SolventDotNew(MSKContext * G,
                                         skip_flag = true;
                                     }
                                     if(!skip_flag)
-                                      if(within3f
-                                         (coord + 3 * j, v,
+                                      if(within3f(coord + 3 * j, v,
                                           j_atom_info->vdw + probe_radius)) {
                                         flag = false;
                                         break;

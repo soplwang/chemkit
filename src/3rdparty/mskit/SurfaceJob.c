@@ -31,16 +31,24 @@ Z* -------------------------------------------------------------------
 
 void SurfaceJobPurgeResult(MSKContext * G, SurfaceJob * I)
 {
-  I->N = 0;
+  I->N  = 0;
   I->NT = 0;
   VLAFreeP(I->V);
   I->V = NULL;
   VLAFreeP(I->VN);
   I->VN = NULL;
+  VLAFreeP(I->VC);
+  I->VC = NULL;
+  VLAFreeP(I->VA);
+  I->VA = NULL;
   VLAFreeP(I->T);
   I->T = NULL;
   VLAFreeP(I->S);
   I->S = NULL;
+  I->oneColorFlag = true;
+  I->oneAlphaFlag = true;
+  I->oneColor = -1;
+  I->oneAlpha = -1.0F;
 }
 
 SurfaceJob *SurfaceJobNew(MSKContext * G,
@@ -57,7 +65,7 @@ SurfaceJob *SurfaceJobNew(MSKContext * G,
   	I->coord = coord;
   	I->atomInfo = atom_info;
   	I->maxVdw = max_vdw;
-  	I->surfaceQuality = surface_quality;
+    I->surfaceQuality = surface_quality;
   	I->surfaceType = surface_type;
   	I->surfaceSolvent = surface_solvent;
   	I->probeRadius = probe_radius;
@@ -67,6 +75,10 @@ SurfaceJob *SurfaceJobNew(MSKContext * G,
   	I->cavityMode = cavity_mode;
   	I->cavityRadius = cavity_radius;
   	I->cavityCutoff = cavity_cutoff;
+    I->oneColorFlag = true;
+    I->oneAlphaFlag = true;
+    I->oneColor = -1;
+    I->oneAlpha = -1.0F;
 
 #define SURFACE_QUALITY_BEST_SEP       0.25F
 #define SURFACE_QUALITY_NORMAL_SEP     0.5F
@@ -138,7 +150,7 @@ SurfaceJob *SurfaceJobNew(MSKContext * G,
       }
     }
 
-    if (!surface_solvent)
+    if(!surface_solvent)
       I->circumscribe = 0;
   }
   
@@ -868,4 +880,130 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
   G->Ready = true;
 
   return ok;
+}
+
+void SurfaceJobColoring(MSKContext *G, SurfaceJob * I, int *colors, float *transp)
+{
+  SurfaceJobAtomInfo *ai2 = NULL;
+  MapType *map;
+  int a, i0, i, j;
+  int c0, c1, *vc;
+  float a0, a1, *va;
+  float *v0, *n0;
+  float probe_radius;
+  float dist;
+
+  /* assert(colors != NULL); */
+
+  probe_radius = I->probeRadius;
+  ai2 = I->atomInfo;
+
+  if(I->N) {
+    I->oneColorFlag = true;
+    I->oneAlphaFlag = true;
+    I->oneColor = -1;
+    I->oneAlpha = -1.0F;
+
+    if(!I->VC)
+      I->VC = Alloc(int, I->N);
+    vc = I->VC;
+
+    if (transp) {
+      if(!I->VA)
+        I->VA = Alloc(float, I->N);
+      va = I->VA;
+    }
+
+    c0 = -1;
+    a0 = -1.0F;
+
+    /* now, assign colors to each point */
+    map = MapNewFlagged(G, 2 * I->maxVdw + probe_radius,
+                        I->coord, VLAGetSize(I->coord) / 3, NULL, NULL);
+
+    if(map) {
+      MapSetupExpress(map);
+
+      for(a = 0; a < I->N; a++) {
+        SurfaceJobAtomInfo *ai0 = NULL;
+        float minDist = MAXFLOAT;
+
+        v0 = I->V + 3 * a;
+        n0 = I->VN + 3 * a;
+        i0 = -1;
+
+        /* colors */
+        i = *(MapLocusEStart(map, v0));
+        if(i) {
+          j = map->EList[i++];
+          while(j >= 0) {
+            ai2 = I->atomInfo + j;
+            dist = (float) diff3f(v0, I->coord + j * 3) - ai2->vdw;
+            if(dist < minDist) {
+              i0 = j;
+              ai0 = ai2;
+              minDist = dist;
+            }
+            j = map->EList[i++];
+          }
+        }
+
+        c1 = (i0 >= 0)
+                ? *(colors + i0)
+                : -1;
+        *(vc++) = c1;
+
+        if(I->oneColorFlag) {
+          if(c0 >= 0) {
+            if(c0 != c1)
+              I->oneColorFlag = false;
+          } else
+            c0 = c1;
+        }
+
+        if (transp) {
+          a1 = (i0 >= 0)
+                  ? (1.0F - *(transp + i0))
+                  : -1.0F;
+          *(va++) = a1;
+
+          if(I->oneAlphaFlag) {
+            if(a0 >= 0) {
+              if(a0 != a1)
+                I->oneAlphaFlag = false;
+            } else
+              a0 = a1;
+          }
+        }
+      }
+
+      MapFree(map);
+    }
+
+    if(I->oneAlphaFlag) {
+      I->oneAlpha = a0;
+      if(I->VA) {
+        FreeP(I->VA);
+        I->VA = NULL;
+      }
+    }
+    else
+      I->oneColorFlag = false;
+
+    if(I->oneColorFlag) {
+      I->oneColor = c0;
+      if(I->VC) {
+        FreeP(I->VC);
+        I->VC = NULL;
+      }
+    }
+  }
+
+  /*
+     if(surface_color>=0) {
+     I->oneColorFlag=true;
+     I->oneColor=surface_color;
+     }
+   */
+
 }
