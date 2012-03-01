@@ -79,7 +79,7 @@ void SurfaceJobFree(MSKContext * G, SurfaceJob * I);
 
 int SurfaceJobRun(MSKContext * G, SurfaceJob * I);
 
-void SurfaceJobColoring(MSKContext *G, SurfaceJob * I, int *colors, float *transp);
+void SurfaceJobColoring(MSKContext *G, SurfaceJob * I, const int *colors, const float *transp);
 
 void SurfaceJobPurgeResult(MSKContext * G, SurfaceJob * I);
 

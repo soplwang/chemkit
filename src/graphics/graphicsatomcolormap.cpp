@@ -407,4 +407,15 @@ void GraphicsAtomColorMap::setColorScheme(ColorScheme scheme)
     }
 }
 
+// --- Operators ----------------------------------------------------------- //
+GraphicsAtomColorMap& GraphicsAtomColorMap::operator=(const GraphicsAtomColorMap &colorMap)
+{
+    if(this != &colorMap){
+        d->colorMap = colorMap.d->colorMap;
+        d->defaultColor = colorMap.d->defaultColor;
+    }
+
+    return *this;
+}
+
 } // end chemkit namespace

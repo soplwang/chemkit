@@ -71,6 +71,9 @@ public:
     QColor defaultColor() const;
     void setColorScheme(ColorScheme scheme);
 
+    // operators
+    GraphicsAtomColorMap& operator=(const GraphicsAtomColorMap &colorMap);
+
 private:
     GraphicsAtomColorMapPrivate* const d;
 };

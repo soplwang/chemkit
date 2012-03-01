@@ -268,9 +268,7 @@ void BuilderWindow::showSES(bool show)
 
     if (m_showSES) {
         if (!m_sesItem) {
-            m_sesItem = new chemkit::GraphicsSolventSurfaceItem(m_molecule, chemkit::GraphicsSolventSurfaceItem::SurfaceSolventTypeExcluded);
-            m_sesItem->setColor(Qt::red);
-            m_sesItem->material()->setSpecularColor(Qt::transparent);
+            m_sesItem = new chemkit::GraphicsSolventSurfaceItem(m_molecule, chemkit::GraphicsSolventSurfaceItem::SolventTypeExcluded);
             m_sesItem->setOpacity(0.75f);
         }
         ui->graphicsView->addItem(m_sesItem);
@@ -291,9 +289,7 @@ void BuilderWindow::showSAS(bool show)
 
     if (m_showSAS) {
         if (!m_sasItem) {
-            m_sasItem = new chemkit::GraphicsSolventSurfaceItem(m_molecule, chemkit::GraphicsSolventSurfaceItem::SurfaceSolventTypeAccessible);
-            m_sasItem->setColor(Qt::green);
-            m_sasItem->material()->setSpecularColor(Qt::transparent);
+            m_sasItem = new chemkit::GraphicsSolventSurfaceItem(m_molecule, chemkit::GraphicsSolventSurfaceItem::SolventTypeAccessible);
             m_sasItem->setOpacity(0.75f);
         }
         ui->graphicsView->addItem(m_sasItem);

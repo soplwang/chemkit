@@ -36,10 +36,12 @@
 #include "graphicssolventsurfaceitem.h"
 
 #include <chemkit/geometry.h>
+#include <chemkit/element.h>
 #include <chemkit/atom.h>
 #include <chemkit/molecule.h>
 #include <algorithm>
 
+#include "graphicsmaterial.h"
 #include "graphicspainter.h"
 #include "graphicsvertexbuffer.h"
 
@@ -64,9 +66,10 @@ public:
 
 GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
                                        const std::vector<Real>& radii,
+                                       const std::vector<int>& atomTypes,
                                        Real max_vdw, Real probe_radius,
-                                       int surface_quality, int surface_type,
-                                       int surface_solvent)
+                                       int surface_quality, int surface_type, int surface_solvent,
+                                       const GraphicsAtomColorMap& colorMap, float opacity)
 {
     static __mskit_context_helper _ctx_holder;
 
@@ -78,9 +81,9 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
         SurfaceJobAtomInfo *ap = atom_info;
 
         for (std::vector<Point3>::const_iterator i = points.begin(); i < points.end(); i++) {
-            *cp++ = i->x();
-            *cp++ = i->y();
-            *cp++ = i->z();
+            *cp++ = static_cast<float>(i->x());
+            *cp++ = static_cast<float>(i->y());
+            *cp++ = static_cast<float>(i->z());
         }
         for (std::vector<Real>::const_iterator i = radii.begin(); i < radii.end(); i++) {
             (ap++)->vdw = static_cast<float>(*i);
@@ -98,22 +101,29 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
             QVector<unsigned short> indicies;
 
             fprintf(stderr, "job->N = %d, job->NT = %d\n", job->N, job->NT);
-
+            verticies.reserve(job->N);
+            normals.reserve(job->N);
             for (float *vp = job->V, *np = job->VN, *e = (job->V + job->N*3); vp < e; vp+=3, np+=3) {
                 verticies.push_back(Point3f(vp[0], vp[1], vp[2]));
                 normals.push_back(Point3f(np[0], np[1], np[2]));
                 fprintf(stderr, "v = %f,%f,%f  n = %f,%f,%f\n", vp[0], vp[1], vp[2], np[0], np[1], np[2]);
             }
-            fprintf(stderr, "Triangles:\n");
-            for (int *tp = job->T, *e = (job->T + job->NT*3); tp < e; tp++) {
-                indicies.push_back(static_cast<unsigned short>(*tp));
-                fprintf(stderr, "%d ", *tp);
-            }
-            fprintf(stderr, "\nStrips:\n");
-            for (int *sp = job->S; *sp;) {
-            	//for (int cnt = *sp++; cnt > 0; cnt--) {
-            		fprintf(stderr, "%d ", *sp++);
-            	//}
+
+            if (surface_type != 1) {
+                fprintf(stderr, "Triangles:\n");
+                indicies.reserve(job->NT*3);
+
+                for (int *tp = job->T, *e = (job->T + job->NT*3); tp < e; tp++) {
+                    indicies.push_back(static_cast<unsigned short>(*tp));
+                    fprintf(stderr, "%d ", *tp);
+                }
+
+                fprintf(stderr, "\nStrips:\n");
+                for (int *sp = job->S; *sp;) {
+                    //for (int cnt = *sp++; cnt > 0; cnt--) {
+                        fprintf(stderr, "%d ", *sp++);
+                    //}
+                }
             }
 
             // create vertex buffer
@@ -122,6 +132,35 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
             buffer->setVerticies(verticies);
             buffer->setNormals(normals);
             buffer->setIndicies(indicies);
+
+            // apply colors
+            if(!atomTypes.empty()) {
+                SurfaceJobColoring(_ctx_holder.ctx,
+                                   job,
+                                   atomTypes.data(),
+                                   NULL);
+
+                QVector<QColor> colors;
+                colors.reserve(job->N);
+
+                fprintf(stderr, "\nColors:\n");
+                if(job->oneColorFlag) {
+                    QColor color = colorMap.color(Element(job->oneColor));
+                    color.setAlphaF(opacity);
+                    colors.insert(colors.end(), job->N, color);
+                    fprintf(stderr, "%u ", color.rgba());
+                }
+                else {
+                    for (int *cp = job->VC, *e = (job->VC + job->N); cp < e; cp++) {
+                        QColor color = colorMap.color(Element(*cp));
+                        color.setAlphaF(opacity);
+                        colors.push_back(color);
+                        fprintf(stderr, "%u ", color.rgba());
+                    }
+                }
+
+                buffer->setColors(colors);
+            }
 
             SurfaceJobFree(_ctx_holder.ctx, job);
 
@@ -132,8 +171,8 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
             SurfaceJobFree(_ctx_holder.ctx, job);
     }
 
-    FreeP(atom_info);
-    FreeP(coord);
+    VLAFreeP(atom_info);
+    VLAFreeP(coord);
 
     return 0;
 }
@@ -147,11 +186,14 @@ public:
     const Molecule *molecule;
     GraphicsSolventSurfaceItem::SurfaceQuality quality;
     GraphicsSolventSurfaceItem::SurfaceType surfaceType;
-    GraphicsSolventSurfaceItem::SurfaceSolventType surfaceSolventType;
+    GraphicsSolventSurfaceItem::SolventType solventType;
     Real probeRadius;
+    GraphicsSolventSurfaceItem::ColorMode colorMode;
     QColor color;
+    GraphicsAtomColorMap colorMap;
     std::vector<Point3> points;
     std::vector<Real> radii;
+    std::vector<int> atomTypes;
     Real maxVdwRadius;
     bool maxVdwCalculated;
     GraphicsVertexBuffer *buffer;
@@ -165,25 +207,29 @@ public:
 
 // --- Construction and Destruction ---------------------------------------- //
 /// Creates a new solvent surface item to display of \p molecule.
-GraphicsSolventSurfaceItem::GraphicsSolventSurfaceItem(const Molecule *molecule, SurfaceSolventType type)
+GraphicsSolventSurfaceItem::GraphicsSolventSurfaceItem(const Molecule *molecule, SolventType solventType)
     : GraphicsItem(),
       d(new GraphicsSolventSurfaceItemPrivate)
 {
     d->molecule = molecule;
     d->quality = SurfaceQualityNormal;
     d->surfaceType = SurfaceTypeSolid;
-    d->surfaceSolventType = type;
+    d->solventType = solventType;
     d->probeRadius = 1.4;
+    d->color = Qt::red;
+    d->colorMode = AtomColor;
 
-    if (molecule) {
+    d->colorMap.setColorScheme(GraphicsAtomColorMap::DefaultColorScheme);
+
+    if(molecule){
         d->points.reserve(molecule->size());
         d->radii.reserve(molecule->size());
+        d->atomTypes.reserve(molecule->size());
 
-        for(size_t i = 0; i < molecule->size(); i++){
-            const Atom *atom = molecule->atom(i);
-
+        foreach(const Atom *atom, molecule->atoms()){
             d->points.push_back(atom->position());
             d->radii.push_back(atom->vanDerWaalsRadius());
+            d->atomTypes.push_back(atom->atomicNumber());
         }
     }
 
@@ -208,12 +254,14 @@ void GraphicsSolventSurfaceItem::setMolecule(const Molecule *molecule)
     if(molecule){
         d->points.resize(molecule->size());
         d->radii.resize(molecule->size());
+        d->atomTypes.resize(molecule->size());
 
         for(size_t i = 0; i < molecule->size(); i++){
             const Atom *atom = molecule->atom(i);
 
             d->points[i] = atom->position();
             d->radii[i] = atom->vanDerWaalsRadius();
+            d->atomTypes[i] = atom->atomicNumber();
         }
     }
 
@@ -253,16 +301,16 @@ GraphicsSolventSurfaceItem::SurfaceType GraphicsSolventSurfaceItem::surfaceType(
 }
 
 /// Sets the surface solvent type to \p type.
-void GraphicsSolventSurfaceItem::setSurfaceSolventType(SurfaceSolventType type)
+void GraphicsSolventSurfaceItem::setSolventType(SolventType solventType)
 {
-    d->surfaceSolventType = type;
+    d->solventType = solventType;
     setCalculated(false);
 }
 
 /// Returns the surface solvent type.
-GraphicsSolventSurfaceItem::SurfaceSolventType GraphicsSolventSurfaceItem::surfaceSolventType() const
+GraphicsSolventSurfaceItem::SolventType GraphicsSolventSurfaceItem::solventType() const
 {
-    return d->surfaceSolventType;
+    return d->solventType;
 }
 
 /// Sets the probe radius to \p radius.
@@ -293,6 +341,32 @@ QColor GraphicsSolventSurfaceItem::color() const
     return d->color;
 }
 
+/// Sets the color mode for the solvent surface to \p mode.
+void GraphicsSolventSurfaceItem::setColorMode(ColorMode mode)
+{
+    d->colorMode = mode;
+    setCalculated(false);
+}
+
+/// Returns the color mode for the solvent surface.
+GraphicsSolventSurfaceItem::ColorMode GraphicsSolventSurfaceItem::colorMode() const
+{
+    return d->colorMode;
+}
+
+/// Sets the color map for the solvent surface to \p colorMap.
+void GraphicsSolventSurfaceItem::setAtomColorMap(const GraphicsAtomColorMap &colorMap)
+{
+    d->colorMap = colorMap;
+    setCalculated(false);
+}
+
+/// Returns the color map for the solvent surface.
+GraphicsAtomColorMap GraphicsSolventSurfaceItem::colorMap() const
+{
+    return d->colorMap;
+}
+
 // --- Drawing ------------------------------------------------------------- //
 void GraphicsSolventSurfaceItem::paint(GraphicsPainter *painter)
 {
@@ -301,22 +375,50 @@ void GraphicsSolventSurfaceItem::paint(GraphicsPainter *painter)
     }
 
     if(!d->buffer){
-        d->buffer = calculateSurface(d->points, d->radii,
-                                     maxVdwRadius(), d->probeRadius,
-                                     d->quality, d->surfaceType, d->surfaceSolventType);
+        if(d->colorMode == SolidColor) {
+            d->buffer = calculateSurface(d->points, d->radii, std::vector<int>(),
+                                         maxVdwRadius(), d->probeRadius,
+                                         d->quality, d->surfaceType, d->solventType,
+                                         d->colorMap, opacity());
+        }
+        else {
+            d->buffer = calculateSurface(d->points, d->radii, d->atomTypes,
+                                         maxVdwRadius(), d->probeRadius,
+                                         d->quality, d->surfaceType, d->solventType,
+                                         d->colorMap, opacity());
+        }
+
         if(!d->buffer) {
             return;
         }
     }
 
-    QColor color = d->color;
-    color.setAlphaF(opacity());
+    if (d->colorMode == SolidColor) {
+        QColor color = d->color;
+        color.setAlphaF(opacity());
+        painter->setColor(color);
+    }
 
-    painter->setColor(color);
     painter->draw(d->buffer);
 }
 
 // --- Internal Methods ---------------------------------------------------- //
+void GraphicsSolventSurfaceItem::itemChanged(ItemChange change)
+{
+    if(change == ItemOpacityChanged){
+        if(isOpaque()){
+            material()->setSpecularColor(QColor::fromRgbF(0.3, 0.3, 0.3));
+        }
+        else{
+            material()->setSpecularColor(Qt::transparent);
+        }
+
+        if (d->colorMode != SolidColor) {
+            setCalculated(false);
+        }
+    }
+}
+
 void GraphicsSolventSurfaceItem::setCalculated(bool calculated)
 {
     if (!calculated) {
@@ -331,11 +433,13 @@ Real GraphicsSolventSurfaceItem::maxVdwRadius()
     if (!d->maxVdwCalculated) {
         if (d->radii.empty()) {
             d->maxVdwRadius = 0;
-        } else {
+        }
+        else {
             d->maxVdwRadius = *std::max_element(d->radii.begin(), d->radii.end());
         }
         d->maxVdwCalculated = true;
     }
+
     return d->maxVdwRadius;
 }
 

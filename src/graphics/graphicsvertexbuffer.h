@@ -75,6 +75,11 @@ public:
     QVector<Vector3f> normals() const;
     int normalCount() const;
 
+    // colors
+    void setColors(const QVector<QColor> &colors);
+    QVector<QColor> colors() const;
+    int colorCount() const;
+
     // indicies
     void setIndicies(const QVector<unsigned short> &indicies);
     QVector<unsigned short> indicies() const;

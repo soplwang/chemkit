@@ -34,17 +34,11 @@ void SurfaceJobPurgeResult(MSKContext * G, SurfaceJob * I)
   I->N  = 0;
   I->NT = 0;
   VLAFreeP(I->V);
-  I->V = NULL;
   VLAFreeP(I->VN);
-  I->VN = NULL;
-  VLAFreeP(I->VC);
-  I->VC = NULL;
-  VLAFreeP(I->VA);
-  I->VA = NULL;
   VLAFreeP(I->T);
-  I->T = NULL;
   VLAFreeP(I->S);
-  I->S = NULL;
+  FreeP(I->VC);
+  FreeP(I->VA);
   I->oneColorFlag = true;
   I->oneAlphaFlag = true;
   I->oneColor = -1;
@@ -882,7 +876,7 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
   return ok;
 }
 
-void SurfaceJobColoring(MSKContext *G, SurfaceJob * I, int *colors, float *transp)
+void SurfaceJobColoring(MSKContext *G, SurfaceJob * I, const int *colors, const float *transp)
 {
   SurfaceJobAtomInfo *ai2 = NULL;
   MapType *map;

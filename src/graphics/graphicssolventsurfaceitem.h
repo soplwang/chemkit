@@ -39,6 +39,7 @@
 #include "graphics.h"
 
 #include "graphicsitem.h"
+#include "graphicsatomcolormap.h"
 
 namespace chemkit {
 
@@ -71,13 +72,18 @@ public:
         SurfaceTypeType6 = 6
     };
 
-    enum SurfaceSolventType {
-        SurfaceSolventTypeExcluded = 0,
-        SurfaceSolventTypeAccessible = 1
+    enum SolventType {
+        SolventTypeExcluded = 0,
+        SolventTypeAccessible = 1
+    };
+
+    enum ColorMode {
+        SolidColor,
+        AtomColor
     };
 
     // construction and destruction
-    GraphicsSolventSurfaceItem(const Molecule *molecule = 0, SurfaceSolventType type = SurfaceSolventTypeExcluded);
+    GraphicsSolventSurfaceItem(const Molecule *molecule = 0, SolventType solventType = SolventTypeExcluded);
     ~GraphicsSolventSurfaceItem();
 
     // properties
@@ -87,18 +93,23 @@ public:
     SurfaceQuality quality() const;
     void setSurfaceType(SurfaceType type);
     SurfaceType surfaceType() const;
-    void setSurfaceSolventType(SurfaceSolventType type);
-    SurfaceSolventType surfaceSolventType() const;
+    void setSolventType(SolventType solventType);
+    SolventType solventType() const;
     void setProbeRadius(Real radius);
     Real probeRadius() const;
+    void setColorMode(ColorMode mode);
+    ColorMode colorMode() const;
     void setColor(const QColor &color);
     QColor color() const;
+    void setAtomColorMap(const GraphicsAtomColorMap &colorMap);
+    GraphicsAtomColorMap colorMap() const;
 
     // drawing
     virtual void paint(GraphicsPainter *painter);
 
 private:
     // internal methods
+    void itemChanged(ItemChange change);
     void setCalculated(bool calculated);
     Real maxVdwRadius();
 
