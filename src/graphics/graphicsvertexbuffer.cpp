@@ -331,6 +331,10 @@ void GraphicsVertexBuffer::draw() const
     else{
         glDrawArrays(GL_POINTS, 0, d->verticies.size());
     }
+
+    if (!d->colors.isEmpty()) {
+        glDisableClientState(GL_COLOR_ARRAY);
+    }
 }
 
 void GraphicsVertexBuffer::prepareToDraw() const
