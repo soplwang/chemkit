@@ -413,6 +413,15 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
         int a;
         circumscribe = 0;
         if(sol_dot->nDot) {
+          if (sol_dot->nDot > MaxN) {
+            int v_offset = v - I->V;
+            int vn_offset = vn - I->VN;
+            MaxN = sol_dot->nDot;
+            VLASize(I->V, float, (MaxN + 1) * 3);
+            VLASize(I->VN, float, (MaxN + 1) * 3);
+            v = I->V + v_offset;
+            vn = I->VN + vn_offset;
+          }
           for(a = 0; a < sol_dot->nDot; a++) {
             *(v++) = *(v0++);
             *(vn++) = *(n0++);
