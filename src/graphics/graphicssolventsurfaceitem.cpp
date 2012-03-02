@@ -80,12 +80,12 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
         float *cp = coord;
         SurfaceJobAtomInfo *ap = atom_info;
 
-        for (std::vector<Point3>::const_iterator i = points.begin(); i < points.end(); i++) {
+        for (std::vector<Point3>::const_iterator i = points.begin(); i < points.end(); ++i) {
             *cp++ = static_cast<float>(i->x());
             *cp++ = static_cast<float>(i->y());
             *cp++ = static_cast<float>(i->z());
         }
-        for (std::vector<Real>::const_iterator i = radii.begin(); i < radii.end(); i++) {
+        for (std::vector<Real>::const_iterator i = radii.begin(); i < radii.end(); ++i) {
             (ap++)->vdw = static_cast<float>(*i);
         }
 
@@ -219,6 +219,7 @@ GraphicsSolventSurfaceItem::GraphicsSolventSurfaceItem(const Molecule *molecule,
     d->color = Qt::red;
     d->colorMode = AtomColor;
 
+    material()->setSpecularColor(Qt::transparent);
     d->colorMap.setColorScheme(GraphicsAtomColorMap::DefaultColorScheme);
 
     if(molecule){
@@ -406,12 +407,12 @@ void GraphicsSolventSurfaceItem::paint(GraphicsPainter *painter)
 void GraphicsSolventSurfaceItem::itemChanged(ItemChange change)
 {
     if(change == ItemOpacityChanged){
-        if(isOpaque()){
-            material()->setSpecularColor(QColor::fromRgbF(0.3, 0.3, 0.3));
-        }
-        else{
-            material()->setSpecularColor(Qt::transparent);
-        }
+        //if(isOpaque()){
+        //    material()->setSpecularColor(QColor::fromRgbF(0.3, 0.3, 0.3));
+        //}
+        //else{
+        //    material()->setSpecularColor(Qt::transparent);
+        //}
 
         if (d->colorMode != SolidColor) {
             setCalculated(false);

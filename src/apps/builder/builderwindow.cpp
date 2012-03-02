@@ -269,7 +269,7 @@ void BuilderWindow::showSES(bool show)
     if (m_showSES) {
         if (!m_sesItem) {
             m_sesItem = new chemkit::GraphicsSolventSurfaceItem(m_molecule, chemkit::GraphicsSolventSurfaceItem::SolventTypeExcluded);
-            m_sesItem->setOpacity(0.75f);
+            m_sesItem->setOpacity(1.f);
         }
         ui->graphicsView->addItem(m_sesItem);
     } else {
@@ -290,7 +290,7 @@ void BuilderWindow::showSAS(bool show)
     if (m_showSAS) {
         if (!m_sasItem) {
             m_sasItem = new chemkit::GraphicsSolventSurfaceItem(m_molecule, chemkit::GraphicsSolventSurfaceItem::SolventTypeAccessible);
-            m_sasItem->setOpacity(0.75f);
+            m_sasItem->setOpacity(1.f);
         }
         ui->graphicsView->addItem(m_sasItem);
     } else {

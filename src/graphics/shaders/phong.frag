@@ -52,5 +52,6 @@ void main()
     vec4 diffuse = color * gl_LightSource[0].diffuse * max(dot(normal, L), 0.0);
     vec4 specular = S * pow(max(dot(R, E), 0.0), gl_FrontMaterial.shininess);
 
-    gl_FragColor = W + ambient + diffuse + specular;
+    gl_FragColor =
+        vec4((W + ambient + diffuse + specular).xyz, color.a);
 }
