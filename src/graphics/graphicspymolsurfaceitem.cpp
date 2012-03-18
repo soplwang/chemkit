@@ -33,7 +33,7 @@
 **
 ******************************************************************************/
 
-#include "graphicssolventsurfaceitem.h"
+#include "graphicspymolsurfaceitem.h"
 
 #include <chemkit/geometry.h>
 #include <chemkit/element.h>
@@ -73,6 +73,8 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
 {
     static __mskit_context_helper _ctx_holder;
 
+    MSKContextClean(_ctx_holder.ctx);
+
     float *coord = VLAlloc(float, points.size() * 3);
     SurfaceJobAtomInfo *atom_info = VLACalloc(SurfaceJobAtomInfo, points.size());
 
@@ -100,29 +102,18 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
             QVector<Vector3f> normals;
             QVector<unsigned short> indicies;
 
-            fprintf(stderr, "job->N = %d, job->NT = %d\n", job->N, job->NT);
             verticies.reserve(job->N);
             normals.reserve(job->N);
             for (float *vp = job->V, *np = job->VN, *e = (job->V + job->N*3); vp < e; vp+=3, np+=3) {
                 verticies.push_back(Point3f(vp[0], vp[1], vp[2]));
                 normals.push_back(Point3f(np[0], np[1], np[2]));
-                fprintf(stderr, "v = %f,%f,%f  n = %f,%f,%f\n", vp[0], vp[1], vp[2], np[0], np[1], np[2]);
             }
 
             if (surface_type != 1) {
-                fprintf(stderr, "Triangles:\n");
                 indicies.reserve(job->NT*3);
 
                 for (int *tp = job->T, *e = (job->T + job->NT*3); tp < e; tp++) {
                     indicies.push_back(static_cast<unsigned short>(*tp));
-                    fprintf(stderr, "%d ", *tp);
-                }
-
-                fprintf(stderr, "\nStrips:\n");
-                for (int *sp = job->S; *sp;) {
-                    //for (int cnt = *sp++; cnt > 0; cnt--) {
-                        fprintf(stderr, "%d ", *sp++);
-                    //}
                 }
             }
 
@@ -143,19 +134,16 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
                 QVector<QColor> colors;
                 colors.reserve(job->N);
 
-                fprintf(stderr, "\nColors:\n");
                 if(job->oneColorFlag) {
                     QColor color = colorMap.color(Element(job->oneColor));
                     color.setAlphaF(opacity);
                     colors.insert(colors.end(), job->N, color);
-                    fprintf(stderr, "%u ", color.rgba());
                 }
                 else {
                     for (int *cp = job->VC, *e = (job->VC + job->N); cp < e; cp++) {
                         QColor color = colorMap.color(Element(*cp));
                         color.setAlphaF(opacity);
                         colors.push_back(color);
-                        fprintf(stderr, "%u ", color.rgba());
                     }
                 }
 
@@ -163,7 +151,6 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
             }
 
             SurfaceJobFree(_ctx_holder.ctx, job);
-
             return buffer;
         }
 
@@ -179,16 +166,16 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
 
 }
 
-// === GraphicsSolventSurfaceItemPrivate ======================================= //
-class GraphicsSolventSurfaceItemPrivate
+// === GraphicsPymolSurfaceItemPrivate ======================================= //
+class GraphicsPymolSurfaceItemPrivate
 {
 public:
     const Molecule *molecule;
-    GraphicsSolventSurfaceItem::SurfaceQuality quality;
-    GraphicsSolventSurfaceItem::SurfaceType surfaceType;
-    GraphicsSolventSurfaceItem::SolventType solventType;
+    GraphicsPymolSurfaceItem::SurfaceQuality quality;
+    GraphicsPymolSurfaceItem::SurfaceType surfaceType;
+    GraphicsPymolSurfaceItem::SolventType solventType;
     Real probeRadius;
-    GraphicsSolventSurfaceItem::ColorMode colorMode;
+    GraphicsPymolSurfaceItem::ColorMode colorMode;
     QColor color;
     GraphicsAtomColorMap colorMap;
     std::vector<Point3> points;
@@ -199,17 +186,17 @@ public:
     GraphicsVertexBuffer *buffer;
 };
 
-// === GraphicsSolventSurfaceItem ============================================== //
-/// \class GraphicsSolventSurfaceItem graphicssolventsurfaceitem.h chemkit/graphicssolventsurfaceitem.h
+// === GraphicsPymolSurfaceItem ============================================== //
+/// \class GraphicsPymolSurfaceItem graphicspymolsurfaceitem.h chemkit/graphicspymolsurfaceitem.h
 /// \ingroup chemkit-graphics
-/// \brief The GraphicsSolventSurfaceItem class visually displays a
+/// \brief The GraphicsPymolSurfaceItem class visually displays a Pymol style
 ///        solvent surface.
 
 // --- Construction and Destruction ---------------------------------------- //
 /// Creates a new solvent surface item to display of \p molecule.
-GraphicsSolventSurfaceItem::GraphicsSolventSurfaceItem(const Molecule *molecule, SolventType solventType)
+GraphicsPymolSurfaceItem::GraphicsPymolSurfaceItem(const Molecule *molecule, SolventType solventType)
     : GraphicsItem(),
-      d(new GraphicsSolventSurfaceItemPrivate)
+      d(new GraphicsPymolSurfaceItemPrivate)
 {
     d->molecule = molecule;
     d->quality = SurfaceQualityNormal;
@@ -219,7 +206,6 @@ GraphicsSolventSurfaceItem::GraphicsSolventSurfaceItem(const Molecule *molecule,
     d->color = Qt::red;
     d->colorMode = AtomColor;
 
-    material()->setSpecularColor(Qt::transparent);
     d->colorMap.setColorScheme(GraphicsAtomColorMap::DefaultColorScheme);
 
     if(molecule){
@@ -239,7 +225,7 @@ GraphicsSolventSurfaceItem::GraphicsSolventSurfaceItem(const Molecule *molecule,
 }
 
 /// Destroys the solvent surface object.
-GraphicsSolventSurfaceItem::~GraphicsSolventSurfaceItem()
+GraphicsPymolSurfaceItem::~GraphicsPymolSurfaceItem()
 {
     delete d->buffer;
     delete d;
@@ -247,7 +233,7 @@ GraphicsSolventSurfaceItem::~GraphicsSolventSurfaceItem()
 
 // --- Properties ---------------------------------------------------------- //
 /// Sets the molecule for the surface.
-void GraphicsSolventSurfaceItem::setMolecule(const Molecule *molecule)
+void GraphicsPymolSurfaceItem::setMolecule(const Molecule *molecule)
 {
     d->molecule = molecule;
 
@@ -270,52 +256,52 @@ void GraphicsSolventSurfaceItem::setMolecule(const Molecule *molecule)
 }
 
 /// Returns the molecule for the surface.
-const Molecule* GraphicsSolventSurfaceItem::molecule() const
+const Molecule* GraphicsPymolSurfaceItem::molecule() const
 {
     return d->molecule;
 }
 
 /// Sets the surface quality to \p quality.
-void GraphicsSolventSurfaceItem::setQuality(SurfaceQuality quality)
+void GraphicsPymolSurfaceItem::setQuality(SurfaceQuality quality)
 {
     d->quality = quality;
     setCalculated(false);
 }
 
 /// Returns the surface quality.
-GraphicsSolventSurfaceItem::SurfaceQuality GraphicsSolventSurfaceItem::quality() const
+GraphicsPymolSurfaceItem::SurfaceQuality GraphicsPymolSurfaceItem::quality() const
 {
     return d->quality;
 }
 
 /// Sets the surface type to \p type.
-void GraphicsSolventSurfaceItem::setSurfaceType(SurfaceType type)
+void GraphicsPymolSurfaceItem::setSurfaceType(SurfaceType type)
 {
     d->surfaceType = type;
     setCalculated(false);
 }
 
 /// Returns the surface type.
-GraphicsSolventSurfaceItem::SurfaceType GraphicsSolventSurfaceItem::surfaceType() const
+GraphicsPymolSurfaceItem::SurfaceType GraphicsPymolSurfaceItem::surfaceType() const
 {
     return d->surfaceType;
 }
 
 /// Sets the surface solvent type to \p type.
-void GraphicsSolventSurfaceItem::setSolventType(SolventType solventType)
+void GraphicsPymolSurfaceItem::setSolventType(SolventType solventType)
 {
     d->solventType = solventType;
     setCalculated(false);
 }
 
 /// Returns the surface solvent type.
-GraphicsSolventSurfaceItem::SolventType GraphicsSolventSurfaceItem::solventType() const
+GraphicsPymolSurfaceItem::SolventType GraphicsPymolSurfaceItem::solventType() const
 {
     return d->solventType;
 }
 
 /// Sets the probe radius to \p radius.
-void GraphicsSolventSurfaceItem::setProbeRadius(Real radius)
+void GraphicsPymolSurfaceItem::setProbeRadius(Real radius)
 {
     d->probeRadius = radius;
     setCalculated(false);
@@ -325,51 +311,51 @@ void GraphicsSolventSurfaceItem::setProbeRadius(Real radius)
 ///
 /// The default probe radius is 1.4 Angstroms which approximates
 /// the radius of a water molecule.
-Real GraphicsSolventSurfaceItem::probeRadius() const
+Real GraphicsPymolSurfaceItem::probeRadius() const
 {
     return d->probeRadius;
 }
 
 /// Sets the color for the solvent surface.
-void GraphicsSolventSurfaceItem::setColor(const QColor &color)
+void GraphicsPymolSurfaceItem::setColor(const QColor &color)
 {
     d->color = color;
 }
 
 /// Returns the color for the solvent surface.
-QColor GraphicsSolventSurfaceItem::color() const
+QColor GraphicsPymolSurfaceItem::color() const
 {
     return d->color;
 }
 
 /// Sets the color mode for the solvent surface to \p mode.
-void GraphicsSolventSurfaceItem::setColorMode(ColorMode mode)
+void GraphicsPymolSurfaceItem::setColorMode(ColorMode mode)
 {
     d->colorMode = mode;
     setCalculated(false);
 }
 
 /// Returns the color mode for the solvent surface.
-GraphicsSolventSurfaceItem::ColorMode GraphicsSolventSurfaceItem::colorMode() const
+GraphicsPymolSurfaceItem::ColorMode GraphicsPymolSurfaceItem::colorMode() const
 {
     return d->colorMode;
 }
 
 /// Sets the color map for the solvent surface to \p colorMap.
-void GraphicsSolventSurfaceItem::setAtomColorMap(const GraphicsAtomColorMap &colorMap)
+void GraphicsPymolSurfaceItem::setAtomColorMap(const GraphicsAtomColorMap &colorMap)
 {
     d->colorMap = colorMap;
     setCalculated(false);
 }
 
 /// Returns the color map for the solvent surface.
-GraphicsAtomColorMap GraphicsSolventSurfaceItem::colorMap() const
+GraphicsAtomColorMap GraphicsPymolSurfaceItem::colorMap() const
 {
     return d->colorMap;
 }
 
 // --- Drawing ------------------------------------------------------------- //
-void GraphicsSolventSurfaceItem::paint(GraphicsPainter *painter)
+void GraphicsPymolSurfaceItem::paint(GraphicsPainter *painter)
 {
     if(!d->molecule){
         return;
@@ -404,15 +390,15 @@ void GraphicsSolventSurfaceItem::paint(GraphicsPainter *painter)
 }
 
 // --- Internal Methods ---------------------------------------------------- //
-void GraphicsSolventSurfaceItem::itemChanged(ItemChange change)
+void GraphicsPymolSurfaceItem::itemChanged(ItemChange change)
 {
     if(change == ItemOpacityChanged){
-        //if(isOpaque()){
-        //    material()->setSpecularColor(QColor::fromRgbF(0.3, 0.3, 0.3));
-        //}
-        //else{
-        //    material()->setSpecularColor(Qt::transparent);
-        //}
+        if(isOpaque()){
+            material()->setSpecularColor(QColor::fromRgbF(0.3, 0.3, 0.3));
+        }
+        else{
+            material()->setSpecularColor(Qt::transparent);
+        }
 
         if (d->colorMode != SolidColor) {
             setCalculated(false);
@@ -420,7 +406,7 @@ void GraphicsSolventSurfaceItem::itemChanged(ItemChange change)
     }
 }
 
-void GraphicsSolventSurfaceItem::setCalculated(bool calculated)
+void GraphicsPymolSurfaceItem::setCalculated(bool calculated)
 {
     if (!calculated) {
         delete d->buffer;
@@ -429,7 +415,7 @@ void GraphicsSolventSurfaceItem::setCalculated(bool calculated)
     }
 }
 
-Real GraphicsSolventSurfaceItem::maxVdwRadius()
+Real GraphicsPymolSurfaceItem::maxVdwRadius()
 {
     if (!d->maxVdwCalculated) {
         if (d->radii.empty()) {

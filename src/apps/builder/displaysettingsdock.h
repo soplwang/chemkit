@@ -64,8 +64,8 @@ private slots:
     void moleculeDisplayTypeChanged(int index);
     void showHydrogensCheckClicked(bool checked);
     void showBondOrderCheckClicked(bool checked);
-    void showSESCheckClicked(bool checked);
-    void showSASCheckClicked(bool checked);
+    void showPymolSESCheckClicked(bool checked);
+    void showPymolSASCheckClicked(bool checked);
     void moleculeChanged(chemkit::Molecule *molecule);
 
 private:

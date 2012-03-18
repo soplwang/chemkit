@@ -36,7 +36,7 @@ set(HEADERS
   graphicsray.h
   graphicsringitem.h
   graphicsscene.h
-  graphicssolventsurfaceitem.h
+  graphicspymolsurfaceitem.h
   graphicssphere.h
   graphicssphereitem.h
   graphicstool.h
@@ -70,7 +70,7 @@ set(SOURCES
   graphicsray.cpp
   graphicsringitem.cpp
   graphicsscene.cpp
-  graphicssolventsurfaceitem.cpp
+  graphicspymolsurfaceitem.cpp
   graphicssphere.cpp
   graphicssphereitem.cpp
   graphicstool.cpp

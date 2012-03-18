@@ -33,8 +33,8 @@
 **
 ******************************************************************************/
 
-#ifndef CHEMKIT_GRAPHICSSOLVENTSURFACEITEM_H
-#define CHEMKIT_GRAPHICSSOLVENTSURFACEITEM_H
+#ifndef CHEMKIT_GRAPHICSPYMOLSURFACEITEM_H
+#define CHEMKIT_GRAPHICSPYMOLSURFACEITEM_H
 
 #include "graphics.h"
 
@@ -44,9 +44,9 @@
 namespace chemkit {
 
 class Molecule;
-class GraphicsSolventSurfaceItemPrivate;
+class GraphicsPymolSurfaceItemPrivate;
 
-class CHEMKIT_GRAPHICS_EXPORT GraphicsSolventSurfaceItem : public GraphicsItem
+class CHEMKIT_GRAPHICS_EXPORT GraphicsPymolSurfaceItem : public GraphicsItem
 {
 public:
     // enumerations
@@ -83,8 +83,8 @@ public:
     };
 
     // construction and destruction
-    GraphicsSolventSurfaceItem(const Molecule *molecule = 0, SolventType solventType = SolventTypeExcluded);
-    ~GraphicsSolventSurfaceItem();
+    GraphicsPymolSurfaceItem(const Molecule *molecule = 0, SolventType solventType = SolventTypeExcluded);
+    ~GraphicsPymolSurfaceItem();
 
     // properties
     void setMolecule(const Molecule *molecule);
@@ -114,9 +114,9 @@ private:
     Real maxVdwRadius();
 
 private:
-    GraphicsSolventSurfaceItemPrivate* const d;
+    GraphicsPymolSurfaceItemPrivate* const d;
 };
 
 } // end chemkit namespace
 
-#endif // CHEMKIT_GRAPHICSSOLVENTSURFACEITEM_H
+#endif // CHEMKIT_GRAPHICSPYMOLSURFACEITEM_H

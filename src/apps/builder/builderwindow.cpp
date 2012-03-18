@@ -63,8 +63,8 @@ BuilderWindow::BuilderWindow(QWidget *parent)
     m_file = 0;
     m_molecule = 0;
     m_inMoleculeEdit = false;
-    m_showSES = false;
-    m_showSAS = false;
+    m_showPymolSES = false;
+    m_showPymolSAS = false;
 
     // setup ui
     ui->setupUi(this);
@@ -116,8 +116,8 @@ BuilderWindow::BuilderWindow(QWidget *parent)
 
     // setup view
     m_moleculeItem = 0;
-    m_sesItem = 0;
-    m_sasItem = 0;
+    m_pymolSESItem = 0;
+    m_pymolSASItem = 0;
 
     // setup molecule editor
     m_editor = new chemkit::MoleculeEditor;
@@ -220,24 +220,24 @@ void BuilderWindow::setMolecule(chemkit::Molecule *molecule)
         m_moleculeItem = 0;
     }
 
-    if (m_sesItem) {
-        if(m_showSES) {
-            ui->graphicsView->deleteItem(m_sesItem);
+    if (m_pymolSESItem) {
+        if(m_showPymolSES) {
+            ui->graphicsView->deleteItem(m_pymolSESItem);
         } else {
-            delete m_sesItem;
+            delete m_pymolSESItem;
         }
-        m_sesItem = 0;
-        m_showSES = false;
+        m_pymolSESItem = 0;
+        m_showPymolSES = false;
     }
 
-    if (m_sasItem) {
-        if(m_showSAS) {
-            ui->graphicsView->deleteItem(m_sasItem);
+    if (m_pymolSASItem) {
+        if(m_showPymolSAS) {
+            ui->graphicsView->deleteItem(m_pymolSASItem);
         } else {
-            delete m_sasItem;
+            delete m_pymolSASItem;
         }
-        m_sasItem = 0;
-        m_showSAS = false;
+        m_pymolSASItem = 0;
+        m_showPymolSAS = false;
     }
 
     // add new molecule item
@@ -258,44 +258,44 @@ void BuilderWindow::setMolecule(chemkit::Molecule *molecule)
     emit moleculeChanged(molecule);
 }
 
-void BuilderWindow::showSES(bool show)
+void BuilderWindow::showPymolSES(bool show)
 {
-    if(m_showSES == show){
+    if(m_showPymolSES == show){
         return;
     }
 
-    m_showSES = show;
+    m_showPymolSES = show;
 
-    if (m_showSES) {
-        if (!m_sesItem) {
-            m_sesItem = new chemkit::GraphicsSolventSurfaceItem(m_molecule, chemkit::GraphicsSolventSurfaceItem::SolventTypeExcluded);
-            m_sesItem->setOpacity(1.f);
+    if (m_showPymolSES) {
+        if (!m_pymolSESItem) {
+            m_pymolSESItem = new chemkit::GraphicsPymolSurfaceItem(m_molecule, chemkit::GraphicsPymolSurfaceItem::SolventTypeExcluded);
+            m_pymolSESItem->setOpacity(1.f);
         }
-        ui->graphicsView->addItem(m_sesItem);
+        ui->graphicsView->addItem(m_pymolSESItem);
     } else {
-        if (m_sesItem) {
-            ui->graphicsView->removeItem(m_sesItem);
+        if (m_pymolSESItem) {
+            ui->graphicsView->removeItem(m_pymolSESItem);
         }
     }
 }
 
-void BuilderWindow::showSAS(bool show)
+void BuilderWindow::showPymolSAS(bool show)
 {
-    if(m_showSAS == show){
+    if(m_showPymolSAS == show){
         return;
     }
 
-    m_showSAS = show;
+    m_showPymolSAS = show;
 
-    if (m_showSAS) {
-        if (!m_sasItem) {
-            m_sasItem = new chemkit::GraphicsSolventSurfaceItem(m_molecule, chemkit::GraphicsSolventSurfaceItem::SolventTypeAccessible);
-            m_sasItem->setOpacity(1.f);
+    if (m_showPymolSAS) {
+        if (!m_pymolSASItem) {
+            m_pymolSASItem = new chemkit::GraphicsPymolSurfaceItem(m_molecule, chemkit::GraphicsPymolSurfaceItem::SolventTypeAccessible);
+            m_pymolSASItem->setOpacity(1.f);
         }
-        ui->graphicsView->addItem(m_sasItem);
+        ui->graphicsView->addItem(m_pymolSASItem);
     } else {
-        if (m_sasItem) {
-            ui->graphicsView->removeItem(m_sasItem);
+        if (m_pymolSASItem) {
+            ui->graphicsView->removeItem(m_pymolSASItem);
         }
     }
 }

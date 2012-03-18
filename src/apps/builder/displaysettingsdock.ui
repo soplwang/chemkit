@@ -65,16 +65,16 @@
      </widget>
     </item>
     <item row="4" column="0" colspan="2">
-     <widget class="QCheckBox" name="showSESCheckBox">
+     <widget class="QCheckBox" name="showPymolSESCheckBox">
       <property name="text">
-       <string>Show SES Surface</string>
+       <string>Show Pymol SES</string>
       </property>
      </widget>
     </item>
     <item row="5" column="0" colspan="2">
-     <widget class="QCheckBox" name="showSASCheckBox">
+     <widget class="QCheckBox" name="showPymolSASCheckBox">
       <property name="text">
-       <string>Show SAS Surface</string>
+       <string>Show Pymol SAS</string>
       </property>
      </widget>
     </item>

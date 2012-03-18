@@ -53,8 +53,8 @@ DisplaySettingsDock::DisplaySettingsDock(BuilderWindow *builder)
     connect(ui->moleculeTypeComboBox, SIGNAL(currentIndexChanged(int)), SLOT(moleculeDisplayTypeChanged(int)));
     connect(ui->showHydrogensCheckBox, SIGNAL(clicked(bool)), SLOT(showHydrogensCheckClicked(bool)));
     connect(ui->showBondOrderCheckBox, SIGNAL(clicked(bool)), SLOT(showBondOrderCheckClicked(bool)));
-    connect(ui->showSESCheckBox, SIGNAL(clicked(bool)), SLOT(showSESCheckClicked(bool)));
-    connect(ui->showSASCheckBox, SIGNAL(clicked(bool)), SLOT(showSASCheckClicked(bool)));
+    connect(ui->showPymolSESCheckBox, SIGNAL(clicked(bool)), SLOT(showPymolSESCheckClicked(bool)));
+    connect(ui->showPymolSASCheckBox, SIGNAL(clicked(bool)), SLOT(showPymolSASCheckClicked(bool)));
     connect(builder, SIGNAL(moleculeChanged(chemkit::Molecule*)), SLOT(moleculeChanged(chemkit::Molecule*)));
 }
 
@@ -103,17 +103,17 @@ void DisplaySettingsDock::showBondOrderCheckClicked(bool checked)
     }
 }
 
-void DisplaySettingsDock::showSESCheckClicked(bool checked)
+void DisplaySettingsDock::showPymolSESCheckClicked(bool checked)
 {
-    m_builder->showSES(checked);
+    m_builder->showPymolSES(checked);
     if(!m_batch) {
         m_builder->view()->update();
     }
 }
 
-void DisplaySettingsDock::showSASCheckClicked(bool checked)
+void DisplaySettingsDock::showPymolSASCheckClicked(bool checked)
 {
-    m_builder->showSAS(checked);
+    m_builder->showPymolSAS(checked);
     if(!m_batch) {
         m_builder->view()->update();
     }
@@ -127,7 +127,7 @@ void DisplaySettingsDock::moleculeChanged(chemkit::Molecule *molecule)
     moleculeDisplayTypeChanged(ui->moleculeTypeComboBox->currentIndex());
     showHydrogensCheckClicked(ui->showHydrogensCheckBox->checkState());
     showBondOrderCheckClicked(ui->showBondOrderCheckBox->checkState());
-    showSESCheckClicked(ui->showSESCheckBox->checkState());
-    showSASCheckClicked(ui->showSASCheckBox->checkState());
+    showPymolSESCheckClicked(ui->showPymolSESCheckBox->checkState());
+    showPymolSASCheckClicked(ui->showPymolSASCheckBox->checkState());
     m_batch = false;
 }
