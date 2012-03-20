@@ -74,7 +74,7 @@ public:
     void setColorScheme(ColorScheme scheme);
 
     // operators
-    GraphicsAtomColorMap& operator=(const GraphicsAtomColorMap &colorMap);
+    AtomColorMap& operator=(const AtomColorMap &colorMap);
 
 private:
     AtomColorMapPrivate* const d;

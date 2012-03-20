@@ -407,7 +407,7 @@ void AtomColorMap::setColorScheme(ColorScheme scheme)
 }
 
 // --- Operators ----------------------------------------------------------- //
-GraphicsAtomColorMap& GraphicsAtomColorMap::operator=(const GraphicsAtomColorMap &colorMap)
+AtomColorMap& AtomColorMap::operator=(const AtomColorMap &colorMap)
 {
     if(this != &colorMap){
         d->colorMap = colorMap.d->colorMap;

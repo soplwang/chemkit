@@ -263,7 +263,7 @@ void BuilderWindow::showPymolSES(bool show)
 
     if (m_showPymolSES) {
         if (!m_pymolSESItem) {
-            m_pymolSESItem = new chemkit::GraphicsPymolSurfaceItem(m_molecule, chemkit::GraphicsPymolSurfaceItem::SolventTypeExcluded);
+            m_pymolSESItem = new chemkit::GraphicsPymolSurfaceItem(m_molecule.get(), chemkit::GraphicsPymolSurfaceItem::SolventTypeExcluded);
             m_pymolSESItem->setOpacity(1.f);
         }
         ui->graphicsView->addItem(m_pymolSESItem);
@@ -284,7 +284,7 @@ void BuilderWindow::showPymolSAS(bool show)
 
     if (m_showPymolSAS) {
         if (!m_pymolSASItem) {
-            m_pymolSASItem = new chemkit::GraphicsPymolSurfaceItem(m_molecule, chemkit::GraphicsPymolSurfaceItem::SolventTypeAccessible);
+            m_pymolSASItem = new chemkit::GraphicsPymolSurfaceItem(m_molecule.get(), chemkit::GraphicsPymolSurfaceItem::SolventTypeAccessible);
             m_pymolSASItem->setOpacity(1.f);
         }
         ui->graphicsView->addItem(m_pymolSASItem);

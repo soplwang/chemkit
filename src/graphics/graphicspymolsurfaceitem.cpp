@@ -35,6 +35,9 @@
 
 #include "graphicspymolsurfaceitem.h"
 
+#include <boost/make_shared.hpp>
+
+#include <chemkit/foreach.h>
 #include <chemkit/geometry.h>
 #include <chemkit/element.h>
 #include <chemkit/atom.h>
@@ -69,7 +72,7 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
                                        const std::vector<int>& atomTypes,
                                        Real max_vdw, Real probe_radius,
                                        int surface_quality, int surface_type, int surface_solvent,
-                                       const GraphicsAtomColorMap& colorMap, float opacity)
+                                       const AtomColorMap& colorMap, float opacity)
 {
     static __mskit_context_helper _ctx_holder;
 
@@ -177,7 +180,7 @@ public:
     Real probeRadius;
     GraphicsPymolSurfaceItem::ColorMode colorMode;
     QColor color;
-    GraphicsAtomColorMap colorMap;
+    boost::shared_ptr<AtomColorMap> colorMap;
     std::vector<Point3> points;
     std::vector<Real> radii;
     std::vector<int> atomTypes;
@@ -205,8 +208,7 @@ GraphicsPymolSurfaceItem::GraphicsPymolSurfaceItem(const Molecule *molecule, Sol
     d->probeRadius = 1.4;
     d->color = Qt::red;
     d->colorMode = AtomColor;
-
-    d->colorMap.setColorScheme(GraphicsAtomColorMap::DefaultColorScheme);
+    d->colorMap = boost::make_shared<AtomColorMap>(AtomColorMap::DefaultColorScheme);
 
     if(molecule){
         d->points.reserve(molecule->size());
@@ -342,14 +344,14 @@ GraphicsPymolSurfaceItem::ColorMode GraphicsPymolSurfaceItem::colorMode() const
 }
 
 /// Sets the color map for the solvent surface to \p colorMap.
-void GraphicsPymolSurfaceItem::setAtomColorMap(const GraphicsAtomColorMap &colorMap)
+void GraphicsPymolSurfaceItem::setColorMap(const boost::shared_ptr<AtomColorMap> &colorMap)
 {
     d->colorMap = colorMap;
     setCalculated(false);
 }
 
 /// Returns the color map for the solvent surface.
-GraphicsAtomColorMap GraphicsPymolSurfaceItem::colorMap() const
+boost::shared_ptr<AtomColorMap> GraphicsPymolSurfaceItem::colorMap() const
 {
     return d->colorMap;
 }
@@ -366,13 +368,13 @@ void GraphicsPymolSurfaceItem::paint(GraphicsPainter *painter)
             d->buffer = calculateSurface(d->points, d->radii, std::vector<int>(),
                                          maxVdwRadius(), d->probeRadius,
                                          d->quality, d->surfaceType, d->solventType,
-                                         d->colorMap, opacity());
+                                         *d->colorMap, opacity());
         }
         else {
             d->buffer = calculateSurface(d->points, d->radii, d->atomTypes,
                                          maxVdwRadius(), d->probeRadius,
                                          d->quality, d->surfaceType, d->solventType,
-                                         d->colorMap, opacity());
+                                         *d->colorMap, opacity());
         }
 
         if(!d->buffer) {
