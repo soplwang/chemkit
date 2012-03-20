@@ -38,6 +38,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/make_shared.hpp>
 
+#include <rpc/types.h>
 #include <rpc/xdr.h>
 #include <rpc/types.h>
 #include <chemkit/vector3.h>

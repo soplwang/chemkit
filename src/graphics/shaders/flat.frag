@@ -35,8 +35,12 @@
 **
 ******************************************************************************/
 
+varying vec4 color;
+
 void main()
 {
-    gl_FragColor = gl_Color;
+    gl_FragColor = (gl_FrontMaterial.emission + color * gl_LightModel.ambient) * color
+                   + gl_LightSource[0].ambient * color
+                   + gl_LightSource[0].diffuse * color;
 }
 

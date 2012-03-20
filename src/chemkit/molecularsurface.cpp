@@ -120,6 +120,9 @@ MolecularSurface::MolecularSurface(const Molecule *molecule, SurfaceType type)
     d->probeRadius = 1.4;
 
     if(molecule){
+        d->points.reserve(molecule->size());
+        d->radii.reserve(molecule->size());
+
         foreach(const Atom *atom, molecule->atoms()){
             d->points.push_back(atom->position());
             d->radii.push_back(atom->vanDerWaalsRadius());
