@@ -56,6 +56,8 @@ class MolecularSurfaceTest : public QObject
         void methane();
         void ethanol();
         void adenosine();
+        void buckminsterfullerene();
+        void dablib();
         void lysozyme();
         void cytochrome();
         void toxin();

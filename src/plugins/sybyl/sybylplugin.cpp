@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2009-2011 Kyle Lutz <kyle.r.lutz@gmail.com>
+** Copyright (C) 2009-2012 Kyle Lutz <kyle.r.lutz@gmail.com>
 ** All rights reserved.
 **
 ** This file is a part of the chemkit project. For more information
@@ -33,7 +33,7 @@
 **
 ******************************************************************************/
 
-#include "sybylplugin.h"
+#include <chemkit/plugin.h>
 
 #include "sybylatomtyper.h"
 
@@ -41,35 +41,18 @@
 #include "mol2fileformat.h"
 #endif
 
-SybylPlugin::SybylPlugin()
-    : chemkit::Plugin("sybyl")
+class SybylPlugin : public chemkit::Plugin
 {
-    registerPluginClass<chemkit::AtomTyper>("sybyl", createSybylAtomTyper);
+public:
+    SybylPlugin()
+        : chemkit::Plugin("sybyl")
+    {
+        CHEMKIT_REGISTER_ATOM_TYPER("sybyl", SybylAtomTyper);
 
-#ifdef CHEMKIT_WITH_IO
-    registerPluginClass<chemkit::MoleculeFileFormat>("mol2", createMol2FileFormat);
-#endif
-}
-
-SybylPlugin::~SybylPlugin()
-{
-    unregisterPluginClass<chemkit::AtomTyper>("sybyl");
-
-#ifdef CHEMKIT_WITH_IO
-    unregisterPluginClass<chemkit::MoleculeFileFormat>("mol2");
-#endif
-}
-
-chemkit::AtomTyper* SybylPlugin::createSybylAtomTyper()
-{
-    return new SybylAtomTyper;
-}
-
-#ifdef CHEMKIT_WITH_IO
-chemkit::MoleculeFileFormat* SybylPlugin::createMol2FileFormat()
-{
-    return new Mol2FileFormat;
-}
-#endif
+        #ifdef CHEMKIT_WITH_IO
+        CHEMKIT_REGISTER_MOLECULE_FILE_FORMAT("mol2", Mol2FileFormat);
+        #endif
+    }
+};
 
 CHEMKIT_EXPORT_PLUGIN(sybyl, SybylPlugin)

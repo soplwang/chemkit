@@ -1,6 +1,20 @@
+# set a variable for the operating system
+set(CHEMKIT_OS_UNIX FALSE)
+set(CHEMKIT_OS_MAC FALSE)
+set(CHEMKIT_OS_WIN32 FALSE)
+
+if(UNIX)
+  set(CHEMKIT_OS_UNIX TRUE)
+  if(APPLE)
+    set(CHEMKIT_OS_MAC TRUE)
+  endif()
+elseif(WIN32)
+  set(CHEMKIT_OS_WIN32 TRUE)
+endif()
+
 # set compiler options
-if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden -ansi -pedantic -Wall -Wextra -Wno-long-long")
+if(CMAKE_COMPILER_IS_GNUCXX AND NOT WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden -pedantic -Wall -Wextra -Wno-long-long")
 endif()
 
 macro(add_chemkit_library library_name)
@@ -21,8 +35,9 @@ add_subdirectory(chemkit)
 add_subdirectory(graphics)
 add_subdirectory(io)
 add_subdirectory(md)
+add_subdirectory(md-io)
 add_subdirectory(web)
-add_subdirectory(widgets)
+add_subdirectory(gui)
 add_subdirectory(plugins)
 add_subdirectory(qt-designer-plugins)
 add_subdirectory(apps)

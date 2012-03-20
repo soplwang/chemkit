@@ -36,8 +36,6 @@
 #ifndef FORMULALINEFORMAT_H
 #define FORMULALINEFORMAT_H
 
-#include <QtCore>
-
 #include <chemkit/lineformat.h>
 
 class FormulaLineFormat : public chemkit::LineFormat
@@ -45,8 +43,8 @@ class FormulaLineFormat : public chemkit::LineFormat
 public:
     FormulaLineFormat();
 
-    bool read(const std::string &formula, chemkit::Molecule *molecule);
-    std::string write(const chemkit::Molecule *molecule);
+    chemkit::Molecule* read(const std::string &formula) CHEMKIT_OVERRIDE;
+    std::string write(const chemkit::Molecule *molecule) CHEMKIT_OVERRIDE;
 };
 
 #endif // FORMULALINEFORMAT_H

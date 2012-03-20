@@ -52,6 +52,11 @@ void main()
     vec4 diffuse = color * gl_LightSource[0].diffuse * max(dot(normal, L), 0.0);
     vec4 specular = S * pow(max(dot(R, E), 0.0), gl_FrontMaterial.shininess);
 
-    gl_FragColor =
-        vec4((W + ambient + diffuse + specular).xyz, color.a);
+    vec4 icolor = vec4((W + ambient + diffuse + specular).xyz, color.a);
+
+    // apply fog
+    float fogFactor = clamp((gl_Fog.end - gl_FogFragCoord) * gl_Fog.scale, 0.0, 1.0);
+    icolor.rgb = mix(gl_Fog.color.rgb, icolor.rgb, fogFactor);
+
+    gl_FragColor = icolor;
 }

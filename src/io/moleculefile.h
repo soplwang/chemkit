@@ -41,6 +41,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/shared_ptr.hpp>
 #include <boost/range/iterator_range.hpp>
 
 #include "genericfile.h"
@@ -55,7 +56,7 @@ class CHEMKIT_IO_EXPORT MoleculeFile : public GenericFile<MoleculeFile, Molecule
 {
 public:
     // typedefs
-    typedef boost::iterator_range<std::vector<Molecule *>::const_iterator> MoleculeRange;
+    typedef boost::iterator_range<std::vector<boost::shared_ptr<Molecule> >::const_iterator> MoleculeRange;
 
     // construction and destruction
     MoleculeFile();
@@ -63,22 +64,21 @@ public:
     virtual ~MoleculeFile();
 
     // properties
-    int size() const;
+    size_t size() const;
     bool isEmpty() const;
 
     // file contents
-    void addMolecule(Molecule *molecule);
-    bool removeMolecule(Molecule *molecule);
-    bool deleteMolecule(Molecule *molecule);
-    std::vector<Molecule *> molecules() const;
-    int moleculeCount() const;
-    MoleculeRange moleculeRange() const;
-    Molecule* molecule(int index = 0) const;
-    bool contains(const Molecule *molecule) const;
+    void addMolecule(const boost::shared_ptr<Molecule> &molecule);
+    bool removeMolecule(const boost::shared_ptr<Molecule> &molecule);
+    MoleculeRange molecules() const;
+    size_t moleculeCount() const;
+    boost::shared_ptr<Molecule> molecule(size_t index = 0) const;
+    boost::shared_ptr<Molecule> molecule(const std::string &name) const;
+    bool contains(const boost::shared_ptr<Molecule> &molecule) const;
     void clear();
 
     // static methods
-    static Molecule* quickRead(const std::string &fileName);
+    static boost::shared_ptr<Molecule> quickRead(const std::string &fileName);
     static void quickWrite(const Molecule *molecule, const std::string &fileName);
 
 private:

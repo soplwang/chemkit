@@ -35,6 +35,8 @@
 
 #include "moleculefiletest.h"
 
+#include <boost/make_shared.hpp>
+
 #include <chemkit/molecule.h>
 #include <chemkit/moleculefile.h>
 
@@ -65,13 +67,14 @@ void MoleculeFileTest::format()
 void MoleculeFileTest::contains()
 {
     chemkit::MoleculeFile file;
-    QCOMPARE(file.contains(0), false);
+    boost::shared_ptr<chemkit::Molecule> nullPointer;
+    QCOMPARE(file.contains(nullPointer), false);
 
-    chemkit::Molecule *molecule = new chemkit::Molecule;
+    boost::shared_ptr<chemkit::Molecule> molecule = boost::make_shared<chemkit::Molecule>();
     file.addMolecule(molecule);
     QCOMPARE(file.contains(molecule), true);
 
-    chemkit::Molecule *anotherMolecule = new chemkit::Molecule;
+    boost::shared_ptr<chemkit::Molecule> anotherMolecule = boost::make_shared<chemkit::Molecule>();
     QCOMPARE(file.contains(anotherMolecule), false);
 
     file.addMolecule(anotherMolecule);
@@ -79,8 +82,6 @@ void MoleculeFileTest::contains()
 
     file.removeMolecule(molecule);
     QCOMPARE(file.contains(molecule), false);
-
-    file.addMolecule(molecule);
 }
 
 void MoleculeFileTest::data()
@@ -92,6 +93,29 @@ void MoleculeFileTest::data()
 
     file.setData("number", 4);
     QCOMPARE(file.data("number").toInt(), 4);
+}
+
+void MoleculeFileTest::molecule()
+{
+    chemkit::MoleculeFile file;
+
+    boost::shared_ptr<chemkit::Molecule> a(new chemkit::Molecule);
+    boost::shared_ptr<chemkit::Molecule> b(new chemkit::Molecule);
+    boost::shared_ptr<chemkit::Molecule> c(new chemkit::Molecule);
+    file.addMolecule(a);
+    file.addMolecule(b);
+    file.addMolecule(c);
+    QVERIFY(file.molecule(0) == a);
+    QVERIFY(file.molecule(1) == b);
+    QVERIFY(file.molecule(2) == c);
+
+    a->setName("foo");
+    b->setName("bar");
+    c->setName("baz");
+    QVERIFY(file.molecule("foo") == a);
+    QVERIFY(file.molecule("bar") == b);
+    QVERIFY(file.molecule("baz") == c);
+    QVERIFY(file.molecule("invalid-name") == 0);
 }
 
 QTEST_APPLESS_MAIN(MoleculeFileTest)

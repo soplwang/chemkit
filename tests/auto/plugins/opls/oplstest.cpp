@@ -39,7 +39,7 @@
 
 #include "oplstest.h"
 
-#include <algorithm>
+#include <boost/range/algorithm.hpp>
 
 #include <chemkit/molecule.h>
 #include <chemkit/atomtyper.h>
@@ -51,20 +51,16 @@ const std::string dataPath = "../../../data/";
 
 void OplsTest::initTestCase()
 {
-    std::vector<std::string> typers = chemkit::AtomTyper::typers();
-    QVERIFY(std::find(typers.begin(), typers.end(), "opls") != typers.end());
-
-    std::vector<std::string> forceFields = chemkit::ForceField::forceFields();
-    QVERIFY(std::find(forceFields.begin(), forceFields.end(), "opls") != forceFields.end());
-
-    std::vector<std::string> descriptors = chemkit::MolecularDescriptor::descriptors();
-    QVERIFY(std::find(descriptors.begin(), descriptors.end(), "opls-energy") != descriptors.end());
+    // verify that the opls plugin registered itself correctly
+    QVERIFY(boost::count(chemkit::AtomTyper::typers(), "opls") == 1);
+    QVERIFY(boost::count(chemkit::ForceField::forceFields(), "opls") == 1);
+    QVERIFY(boost::count(chemkit::MolecularDescriptor::descriptors(), "opls-energy") == 1);
 }
 
 void OplsTest::energy_data()
 {
-    QTest::addColumn<QString>("fileName");
-    QTest::addColumn<QString>("formula");
+    QTest::addColumn<QString>("fileNameString");
+    QTest::addColumn<QString>("formulaString");
     QTest::addColumn<double>("energy");
 
     QTest::newRow("water") << "water.mol" << "H2O" << 1.8698;
@@ -75,18 +71,22 @@ void OplsTest::energy_data()
 
 void OplsTest::energy()
 {
-    QFETCH(QString, fileName);
-    QFETCH(QString, formula);
+    QFETCH(QString, fileNameString);
+    QFETCH(QString, formulaString);
     QFETCH(double, energy);
 
-    chemkit::Molecule *molecule = chemkit::MoleculeFile::quickRead(dataPath + fileName.toStdString());
+    QByteArray fileName = fileNameString.toAscii();
+    QByteArray formula = formulaString.toAscii();
+
+    boost::shared_ptr<chemkit::Molecule> molecule =
+        chemkit::MoleculeFile::quickRead(dataPath + fileName.constData());
     QVERIFY(molecule != 0);
-    QCOMPARE(molecule->formula(), formula.toStdString());
+    QCOMPARE(molecule->formula().c_str(), formula.constData());
 
     chemkit::ForceField *opls = chemkit::ForceField::create("opls");
     QVERIFY(opls != 0);
 
-    opls->setMolecule(molecule);
+    opls->setMolecule(molecule.get());
     bool setup = opls->setup();
     QVERIFY(setup == true);
 
@@ -95,7 +95,6 @@ void OplsTest::energy()
     // check opls energy descriptor
     QCOMPARE(qRound(molecule->descriptor("opls-energy").toDouble()), qRound(energy));
 
-    delete molecule;
     delete opls;
 }
 

@@ -48,16 +48,15 @@ public:
     MmffAtomTyper(const chemkit::Molecule *molecule = 0);
     ~MmffAtomTyper();
 
+    // properties
+    void setMolecule(const chemkit::Molecule *molecule) CHEMKIT_OVERRIDE;
+
     // types
-    int typeNumber(int index) const;
-    int typeNumber(const chemkit::Atom *atom) const;
+    int typeNumber(const chemkit::Atom *atom) const CHEMKIT_OVERRIDE;
 
     // charges
     chemkit::Real formalCharge(int index) const;
     chemkit::Real formalCharge(const chemkit::Atom *atom) const;
-
-protected:
-    void assignTypes(const chemkit::Molecule *molecule);
 
 private:
     void setType(int index, int type, chemkit::Real formalCharge = 0);
@@ -72,7 +71,6 @@ private:
 private:
     std::vector<int> m_types;
     std::vector<chemkit::Real> m_formalCharges;
-    std::vector<chemkit::Real> m_partialCharges;
 };
 
 #endif // MMFFATOMTYPER_H

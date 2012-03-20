@@ -75,18 +75,18 @@ public:
     QVector<Vector3f> normals() const;
     int normalCount() const;
 
+    // indices
+    void setIndicies(const QVector<unsigned short> &indices);
+    QVector<unsigned short> indices() const;
+    int indexCount() const;
+
     // colors
     void setColors(const QVector<QColor> &colors);
     QVector<QColor> colors() const;
     int colorCount() const;
 
-    // indicies
-    void setIndicies(const QVector<unsigned short> &indicies);
-    QVector<unsigned short> indicies() const;
-    int indexCount() const;
-
     // drawing
-    void draw() const;
+    void draw(GLenum mode = GL_TRIANGLES) const;
     void prepareToDraw() const;
     bool readyToDraw() const;
 

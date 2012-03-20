@@ -38,7 +38,7 @@
 
 #include "chemkit.h"
 
-#include <cstddef>
+#include "point3.h"
 
 namespace chemkit {
 
@@ -76,6 +76,9 @@ public:
     InternalCoordinates* internalCoordinates() const;
     DiagramCoordinates* diagramCoordinates() const;
     void clear();
+
+    // position
+    Point3 position(size_t index) const;
 
     // operators
     CoordinateSet& operator=(const CoordinateSet &other);

@@ -40,6 +40,10 @@
 
 #include <vector>
 
+#include <boost/tuple/tuple.hpp>
+
+#include "bond.h"
+
 namespace chemkit {
 
 class Atom;
@@ -49,6 +53,9 @@ class BondPredictorPrivate;
 class CHEMKIT_EXPORT BondPredictor
 {
 public:
+    // typedefs
+    typedef boost::tuple<Atom *, Atom *, Bond::BondOrderType> PredictedBond;
+
     // construction and destruction
     BondPredictor(Molecule *molecule);
     ~BondPredictor();
@@ -63,11 +70,13 @@ public:
     Molecule* molecule() const;
 
     // prediction
-    std::vector<std::pair<Atom *, Atom *> > predictedBonds();
-    bool couldBeBonded(Atom *a, Atom *b) const;
+    std::vector<PredictedBond> predictedBonds();
 
     // static methods
     static void predictBonds(Molecule *molecule);
+
+private:
+    bool couldBeBonded(Atom *a, Atom *b) const;
 
 private:
     BondPredictorPrivate* const d;

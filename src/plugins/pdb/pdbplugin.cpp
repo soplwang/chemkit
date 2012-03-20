@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2009-2011 Kyle Lutz <kyle.r.lutz@gmail.com>
+** Copyright (C) 2009-2012 Kyle Lutz <kyle.r.lutz@gmail.com>
 ** All rights reserved.
 **
 ** This file is a part of the chemkit project. For more information
@@ -33,33 +33,34 @@
 **
 ******************************************************************************/
 
-#include "pdbplugin.h"
-
+#include <chemkit/plugin.h>
 #include <chemkit/moleculefileformatadaptor.h>
 
 #include "pdbfileformat.h"
+#include "pdbmlfileformat.h"
 
-PdbPlugin::PdbPlugin()
-    : chemkit::Plugin("pdb")
+class PdbPlugin : public chemkit::Plugin
 {
-    registerPluginClass<chemkit::PolymerFileFormat>("pdb", createPdbFormat);
-    registerPluginClass<chemkit::MoleculeFileFormat>("pdb", createPdbMoleculeFormat);
-}
+public:
+    PdbPlugin()
+        : chemkit::Plugin("pdb")
+    {
+        CHEMKIT_REGISTER_POLYMER_FILE_FORMAT("pdb", PdbFileFormat);
+        CHEMKIT_REGISTER_POLYMER_FILE_FORMAT("pdbml", PdbmlFileFormat);
+        registerPluginClass<chemkit::MoleculeFileFormat>("pdb", createPdbMoleculeFormat);
+        registerPluginClass<chemkit::MoleculeFileFormat>("pdbml", createPdbmlMoleculeFormat);
+    }
 
-PdbPlugin::~PdbPlugin()
-{
-    unregisterPluginClass<chemkit::PolymerFileFormat>("pdb");
-    unregisterPluginClass<chemkit::MoleculeFileFormat>("pdb");
-}
+    static chemkit::MoleculeFileFormat* createPdbMoleculeFormat()
+    {
+        return new chemkit::MoleculeFileFormatAdaptor<chemkit::PolymerFileFormat>(new PdbFileFormat);
+    }
 
-chemkit::PolymerFileFormat* PdbPlugin::createPdbFormat()
-{
-    return new PdbFileFormat;
-}
+    static chemkit::MoleculeFileFormat* createPdbmlMoleculeFormat()
+    {
+        return new chemkit::MoleculeFileFormatAdaptor<chemkit::PolymerFileFormat>(new PdbmlFileFormat);
+    }
 
-chemkit::MoleculeFileFormat* PdbPlugin::createPdbMoleculeFormat()
-{
-    return new chemkit::MoleculeFileFormatAdaptor<chemkit::PolymerFileFormat>(new PdbFileFormat);
-}
+};
 
 CHEMKIT_EXPORT_PLUGIN(pdb, PdbPlugin)

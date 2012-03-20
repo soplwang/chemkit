@@ -36,19 +36,15 @@
 #include "xyzfileformat.h"
 
 #include <iomanip>
-#include <iostream>
 
 #include <chemkit/atom.h>
 #include <chemkit/element.h>
 #include <chemkit/foreach.h>
+#include <chemkit/molecule.h>
 #include <chemkit/moleculefile.h>
 
 XyzFileFormat::XyzFileFormat()
     : chemkit::MoleculeFileFormat("xyz")
-{
-}
-
-XyzFileFormat::~XyzFileFormat()
 {
 }
 
@@ -65,7 +61,7 @@ bool XyzFileFormat::read(std::istream &input, chemkit::MoleculeFile *file)
     CHEMKIT_UNUSED(commentLine);
 
     // create molecule
-    chemkit::Molecule *molecule = new chemkit::Molecule;
+    boost::shared_ptr<chemkit::Molecule> molecule(new chemkit::Molecule);
 
     // read atoms and coordinates
     for(int i = 0; i < atomCount; i++){
@@ -106,7 +102,7 @@ bool XyzFileFormat::read(std::istream &input, chemkit::MoleculeFile *file)
 
 bool XyzFileFormat::write(const chemkit::MoleculeFile *file, std::ostream &output)
 {
-    chemkit::Molecule *molecule = file->molecule();
+    boost::shared_ptr<chemkit::Molecule> molecule = file->molecule();
     if(!molecule){
         setErrorString("No molecule in file.");
         return false;
@@ -119,7 +115,7 @@ bool XyzFileFormat::write(const chemkit::MoleculeFile *file, std::ostream &outpu
     output << "\n";
 
     // atoms and coordinates
-    foreach(chemkit::Atom *atom, molecule->atoms()){
+    foreach(const chemkit::Atom *atom, molecule->atoms()){
         output << std::showpoint
                << std::setw(3) << atom->symbol()
                << std::setw(15) << std::setprecision(5) << atom->x()

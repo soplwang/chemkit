@@ -35,21 +35,21 @@
 
 #include "wienerindextest.h"
 
-#include <algorithm>
+#include <boost/range/algorithm.hpp>
 
 #include <chemkit/molecule.h>
 #include <chemkit/moleculardescriptor.h>
 
 void WienerIndexTest::initTestCase()
 {
-    std::vector<std::string> descriptors = chemkit::MolecularDescriptor::descriptors();
-    QVERIFY(std::find(descriptors.begin(), descriptors.end(), "wiener-index") != descriptors.end());
+    // verify that the wienerindex plugin registered itself correctly
+    QVERIFY(boost::count(chemkit::MolecularDescriptor::descriptors(), "wiener-index") == 1);
 }
 
 void WienerIndexTest::test_data()
 {
-    QTest::addColumn<QString>("smiles");
-    QTest::addColumn<QString>("formula");
+    QTest::addColumn<QString>("smilesString");
+    QTest::addColumn<QString>("formulaString");
     QTest::addColumn<int>("wienerIndex");
 
     QTest::newRow("ethane") << "CC" << "C2H6" << 1;
@@ -63,12 +63,15 @@ void WienerIndexTest::test_data()
 
 void WienerIndexTest::test()
 {
-    QFETCH(QString, smiles);
-    QFETCH(QString, formula);
+    QFETCH(QString, smilesString);
+    QFETCH(QString, formulaString);
     QFETCH(int, wienerIndex);
 
-    chemkit::Molecule molecule(smiles.toStdString(), "smiles");
-    QCOMPARE(molecule.formula(), formula.toStdString());
+    QByteArray smiles = smilesString.toAscii();
+    QByteArray formula = formulaString.toAscii();
+
+    chemkit::Molecule molecule(smiles.constData(), "smiles");
+    QCOMPARE(molecule.formula().c_str(), formula.constData());
     QCOMPARE(molecule.descriptor("wiener-index").toInt(), wienerIndex);
 }
 

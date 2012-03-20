@@ -35,7 +35,7 @@
 
 #include "inchitest.h"
 
-#include <algorithm>
+#include <boost/range/algorithm.hpp>
 
 #include <chemkit/ring.h>
 #include <chemkit/chemkit.h>
@@ -45,12 +45,10 @@
 
 void InchiTest::initTestCase()
 {
-    std::vector<std::string> lineFormats = chemkit::LineFormat::formats();
-    QVERIFY(std::find(lineFormats.begin(), lineFormats.end(), "inchi") != lineFormats.end());
-    QVERIFY(std::find(lineFormats.begin(), lineFormats.end(), "inchikey") != lineFormats.end());
-
-    std::vector<std::string> fileFormats = chemkit::MoleculeFileFormat::formats();
-    QVERIFY(std::find(fileFormats.begin(), fileFormats.end(), "inchi") != fileFormats.end());
+    // verify that the inchi plugin registered itself correctly
+    QVERIFY(boost::count(chemkit::LineFormat::formats(), "inchi") == 1);
+    QVERIFY(boost::count(chemkit::LineFormat::formats(), "inchikey") == 1);
+    QVERIFY(boost::count(chemkit::MoleculeFileFormat::formats(), "inchi") == 1);
 }
 
 void InchiTest::read()
@@ -176,10 +174,10 @@ void InchiTest::stereochemistry()
     QCOMPARE(inchi->option("stereochemistry").toBool(), true);
 
     C1->setChirality(chemkit::Stereochemistry::R);
-    QCOMPARE(inchi->write(&bromochlorofluoromethane), std::string("InChI=1S/CHBrClF/c2-1(3)4/h1H/t1-/m0/s1"));
+    QCOMPARE(inchi->write(&bromochlorofluoromethane), std::string("InChI=1S/CHBrClF/c2-1(3)4/h1H/t1-/m1/s1"));
 
     C1->setChirality(chemkit::Stereochemistry::S);
-    QCOMPARE(inchi->write(&bromochlorofluoromethane), std::string("InChI=1S/CHBrClF/c2-1(3)4/h1H/t1-/m1/s1"));
+    QCOMPARE(inchi->write(&bromochlorofluoromethane), std::string("InChI=1S/CHBrClF/c2-1(3)4/h1H/t1-/m0/s1"));
 
     C1->setChirality(chemkit::Stereochemistry::None);
     QCOMPARE(inchi->write(&bromochlorofluoromethane), std::string("InChI=1S/CHBrClF/c2-1(3)4/h1H"));
@@ -197,27 +195,48 @@ void InchiTest::addHydrogens()
     chemkit::LineFormat *inchi = chemkit::LineFormat::create("inchi");
     QVERIFY(inchi != 0);
 
-    // by default add-hydrogens is true
-    QCOMPARE(inchi->option("add-hydrogens").toBool(), true);
+    // by default add-implicit-hydrogens is true
+    QCOMPARE(inchi->option("add-implicit-hydrogens").toBool(), true);
 
     // set to false
-    inchi->setOption("add-hydrogens", false);
-    QCOMPARE(inchi->option("add-hydrogens").toBool(), false);
+    inchi->setOption("add-implicit-hydrogens", false);
+    QCOMPARE(inchi->option("add-implicit-hydrogens").toBool(), false);
 
-    // read octane molecule with add-hydrogens enabled
+    // read octane molecule with add-implicit-hydrogens enabled
     chemkit::Molecule *octane;
-    inchi->setOption("add-hydrogens", true);
+    inchi->setOption("add-implicit-hydrogens", true);
     octane = inchi->read("InChI=1/C8H18/c1-3-5-7-8-6-4-2/h3-8H2,1-2H3");
     QVERIFY(octane != 0);
     QCOMPARE(octane->formula(), std::string("C8H18"));
     delete octane;
 
-    // read octane molecule with add-hydrogens disabled
-    inchi->setOption("add-hydrogens", false);
+    // read octane molecule with add-implicit-hydrogens disabled
+    inchi->setOption("add-implicit-hydrogens", false);
     octane = inchi->read("InChI=1/C8H18/c1-3-5-7-8-6-4-2/h3-8H2,1-2H3");
     QVERIFY(octane != 0);
     QCOMPARE(octane->formula(), std::string("C8"));
     delete octane;
+}
+
+void InchiTest::readWrite_data()
+{
+    QTest::addColumn<QString>("inchiString");
+
+    QTest::newRow("ethanol") << "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3";
+    QTest::newRow("acetone") << "InChI=1S/C3H6O/c1-3(2)4/h1-2H3";
+    QTest::newRow("phenol") << "InChI=1S/C6H6O/c7-6-4-2-1-3-5-6/h1-5,7H";
+    QTest::newRow("caffeine") << "InChI=1S/C8H10N4O2/c1-10-4-9-6-5(10)7(13)12(3)8(14)11(6)2/h4H,1-3H3";
+    QTest::newRow("diazepam") << "InChI=1S/C16H13ClN2O/c1-19-14-8-7-12(17)9-13(14)16(18-10-15(19)20)11-5-3-2-4-6-11/h2-9H,10H2,1H3";
+}
+
+void InchiTest::readWrite()
+{
+    QFETCH(QString, inchiString);
+    QByteArray inchi = inchiString.toAscii();
+
+    chemkit::Molecule molecule(inchi.constData(), "inchi");
+    QVERIFY(!molecule.isEmpty());
+    QCOMPARE(molecule.formula("inchi").c_str(), inchi.constData());
 }
 
 QTEST_APPLESS_MAIN(InchiTest)

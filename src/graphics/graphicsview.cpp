@@ -35,6 +35,9 @@
 
 #include "graphicsview.h"
 
+#include <boost/make_shared.hpp>
+
+#include <chemkit/foreach.h>
 #include <chemkit/vector3.h>
 
 #include "graphics.h"
@@ -47,6 +50,7 @@
 #include "graphicspainter.h"
 #include "graphicsmaterial.h"
 #include "graphicstransform.h"
+#include "graphicsnavigationtool.h"
 
 #ifndef GL_MULTISAMPLE
 #define GL_MULTISAMPLE 0x809D
@@ -60,13 +64,11 @@ class GraphicsViewPrivate
 public:
     GraphicsViewPrivate();
 
-    GraphicsScene *scene;
-    bool ownScene;
-    GraphicsCamera *camera;
-    bool ownCamera;
-    GraphicsTool *tool;
+    boost::shared_ptr<GraphicsScene> scene;
+    boost::shared_ptr<GraphicsCamera> camera;
+    boost::shared_ptr<GraphicsTool> tool;
     QColor backgroundColor;
-    QList<GraphicsLight *> lights;
+    std::vector<boost::shared_ptr<GraphicsLight> > lights;
     GraphicsOverlay *overlay;
     bool overlayEnabled;
     GraphicsTransform modelViewTransform;
@@ -75,20 +77,21 @@ public:
     float nearClipDistance;
     float farClipDistance;
     float fieldOfView;
+    bool fogEnabled;
+    bool hardwareIsSupported;
 };
 
 GraphicsViewPrivate::GraphicsViewPrivate()
 {
-    scene = 0;
-    tool = 0;
     backgroundColor = Qt::black;
-    camera = 0;
     overlay = new GraphicsOverlay;
     overlayEnabled = true;
     nearClipDistance = 0.01f;
     farClipDistance = 500.0f;
     fieldOfView = 45.0f;
     shader = 0;
+    fogEnabled = true;
+    hardwareIsSupported = false;
 }
 
 // === GraphicsView ======================================================== //
@@ -107,23 +110,23 @@ GraphicsViewPrivate::GraphicsViewPrivate()
 ///   - GraphicsProteinItem
 ///   - GraphicsNucleicAcidItem
 ///
+/// A gallery showing the different graphics items is available
+/// at: http://wiki.chemkit.org/Graphics_Item_Gallery
+///
 /// The example below shows how to read a molecule from a file,
 /// display it in a GraphicsView widget and setup mouse navigation.
 /// \code
 /// // read the molecule from the file
 /// MoleculeFile file("/path/to/guanine.mol");
 /// file.read();
-/// Molecule *molecule = file.molecule();
+/// boost::shared_ptr<Molecule> molecule = file.molecule();
 ///
 /// // create the graphics view widget
 /// GraphicsView view;
 ///
 /// // add a molecule item to display the molecule
-/// GraphicsMoleculeItem *item = new GraphicsMoleculeItem(molecule);
+/// GraphicsMoleculeItem *item = new GraphicsMoleculeItem(molecule.get());
 /// view.addItem(item);
-///
-/// // add the navigation tool for mouse navigation
-/// view.setTool(new GraphicsNavigationTool);
 ///
 /// // run the application
 /// QApplication app;
@@ -140,22 +143,21 @@ GraphicsView::GraphicsView(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
       d(new GraphicsViewPrivate)
 {
-    setScene(new GraphicsScene);
-    d->ownScene = true;
-    setCamera(new GraphicsCamera(0, 0, 10));
-    d->ownCamera = true;
+    setScene(boost::make_shared<GraphicsScene>());
+    setCamera(boost::make_shared<GraphicsCamera>(0, 0, 10));
+    setTool(boost::make_shared<GraphicsNavigationTool>());
     setAutoFillBackground(false);
 }
 
 /// Creates a new graphics view widget displaying \p scene.
-GraphicsView::GraphicsView(GraphicsScene *scene, QWidget *parent)
+GraphicsView::GraphicsView(const boost::shared_ptr<GraphicsScene> &scene,
+                           QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
       d(new GraphicsViewPrivate)
 {
     setScene(scene);
-    d->ownScene = false;
-    setCamera(new GraphicsCamera(0, 0, 10));
-    d->ownCamera = true;
+    setCamera(boost::make_shared<GraphicsCamera>(0, 0, 10));
+    setTool(boost::make_shared<GraphicsNavigationTool>());
     setAutoFillBackground(false);
 }
 
@@ -164,21 +166,8 @@ GraphicsView::~GraphicsView()
 {
     if(d->scene){
         d->scene->removeView(this);
-
-        if(d->ownScene){
-            delete d->scene;
-        }
     }
 
-    if(d->camera){
-        d->camera->setView(0);
-
-        if(d->ownCamera){
-            delete d->camera;
-        }
-    }
-
-    delete d->tool;
     delete d->overlay;
     delete d->shader;
     delete d;
@@ -186,7 +175,7 @@ GraphicsView::~GraphicsView()
 
 // --- Properties ---------------------------------------------------------- //
 /// Sets the graphics scene to show.
-void GraphicsView::setScene(GraphicsScene *scene)
+void GraphicsView::setScene(const boost::shared_ptr<GraphicsScene> &scene)
 {
     if(scene == d->scene){
         return;
@@ -194,14 +183,9 @@ void GraphicsView::setScene(GraphicsScene *scene)
 
     if(d->scene){
         d->scene->removeView(this);
-
-        if(d->ownScene){
-            delete d->scene;
-        }
     }
 
     d->scene = scene;
-    d->ownScene = false;
 
     if(d->scene){
         d->scene->addView(this);
@@ -211,7 +195,7 @@ void GraphicsView::setScene(GraphicsScene *scene)
 }
 
 /// Returns the scene that the view is showing.
-GraphicsScene* GraphicsView::scene() const
+boost::shared_ptr<GraphicsScene> GraphicsView::scene() const
 {
     return d->scene;
 }
@@ -232,7 +216,7 @@ QColor GraphicsView::backgroundColor() const
 /// Sets the current tool to \p tool.
 ///
 /// The view takes ownership of the tool.
-void GraphicsView::setTool(GraphicsTool *tool)
+void GraphicsView::setTool(const boost::shared_ptr<GraphicsTool> &tool)
 {
     if(d->tool){
         // notify the current tool that the tool changed
@@ -250,7 +234,7 @@ void GraphicsView::setTool(GraphicsTool *tool)
 }
 
 /// Returns the current tool.
-GraphicsTool* GraphicsView::tool() const
+boost::shared_ptr<GraphicsTool> GraphicsView::tool() const
 {
     return d->tool;
 }
@@ -323,18 +307,18 @@ bool GraphicsView::deleteItem(GraphicsItem *item)
 /// Returns a list of all the items in the view's scene.
 ///
 /// \see GraphicsScene::items()
-QList<GraphicsItem *> GraphicsView::items() const
+std::vector<GraphicsItem *> GraphicsView::items() const
 {
     if(d->scene)
         return d->scene->items();
 
-    return QList<GraphicsItem *>();
+    return std::vector<GraphicsItem *>();
 }
 
 /// Returns the number of items in the view's scene.
 ///
 /// \see GraphicsScene::itemCount()
-int GraphicsView::itemCount() const
+size_t GraphicsView::itemCount() const
 {
     if(d->scene)
         return d->scene->itemCount();
@@ -344,30 +328,15 @@ int GraphicsView::itemCount() const
 
 // --- Camera -------------------------------------------------------------- //
 /// Sets the camera to \p camera.
-///
-/// The view takes ownership of the camera.
-void GraphicsView::setCamera(GraphicsCamera *camera)
+void GraphicsView::setCamera(const boost::shared_ptr<GraphicsCamera> &camera)
 {
-    if(d->camera){
-        d->camera->setView(0);
-
-        if(d->ownCamera){
-            delete d->camera;
-        }
-    }
-
     d->camera = camera;
-    d->ownCamera = false;
-
-    if(d->camera){
-        camera->setView(this);
-    }
 
     update();
 }
 
 /// Returns the camera.
-GraphicsCamera* GraphicsView::camera() const
+boost::shared_ptr<GraphicsCamera> GraphicsView::camera() const
 {
     return d->camera;
 }
@@ -472,55 +441,57 @@ float GraphicsView::farClipDistance() const
 
 // --- Lighting ------------------------------------------------------------ //
 /// Adds \p light to the view.
-///
-/// The view takes ownership of the light.
-void GraphicsView::addLight(GraphicsLight *light)
+void GraphicsView::addLight(const boost::shared_ptr<GraphicsLight> &light)
 {
-    d->lights.append(light);
+    d->lights.push_back(light);
 }
 
 /// Removes \p light from the view.
-///
-/// The ownership of the light is passed to the caller.
-bool GraphicsView::removeLight(GraphicsLight *light)
+bool GraphicsView::removeLight(const boost::shared_ptr<GraphicsLight> &light)
 {
-    return d->lights.removeOne(light);
-}
+    std::vector<boost::shared_ptr<GraphicsLight> >::iterator iter = std::find(d->lights.begin(),
+                                                                              d->lights.end(),
+                                                                              light);
 
-/// Removes \p light from the view and deletes it.
-///
-/// Equivalent to:
-/// \code
-/// view.removeLight(light);
-/// delete light;
-/// \endcode
-bool GraphicsView::deleteLight(GraphicsLight *light)
-{
-    bool found = removeLight(light);
-
-    if(found){
-        delete light;
+    if(iter == d->lights.end()){
+        return false;
     }
 
-    return found;
+    d->lights.erase(iter);
+    return true;
 }
 
 /// Returns a list of lights in the view.
-QList<GraphicsLight *> GraphicsView::lights() const
+std::vector<boost::shared_ptr<GraphicsLight> > GraphicsView::lights() const
 {
     return d->lights;
 }
 
 /// Returns the number of lights in the view.
-int GraphicsView::lightCount() const
+size_t GraphicsView::lightCount() const
 {
-    return lights().size();
+    return d->lights.size();
 }
 
 /// Returns the light at \p index.
-GraphicsLight* GraphicsView::light(int index) const
+boost::shared_ptr<GraphicsLight> GraphicsView::light(size_t index) const
 {
-    return d->lights.value(index, 0);
+    assert(index < d->lights.size());
+
+    return d->lights[index];
+}
+
+// --- Fog ----------------------------------------------------------------- //
+/// Enables/disables for rendering for the view.
+void GraphicsView::setFogEnabled(bool enabled)
+{
+    d->fogEnabled = enabled;
+}
+
+/// Returns \c true if fog is enabled.
+bool GraphicsView::fogEnabled() const
+{
+    return d->fogEnabled;
 }
 
 // --- Selection ----------------------------------------------------------- //
@@ -537,10 +508,10 @@ GraphicsItem* GraphicsView::itemAt(int x, int y) const
 }
 
 /// Returns a list of all items under the window point (\p x, \p y).
-QList<GraphicsItem *> GraphicsView::itemsAt(int x, int y, bool sorted) const
+std::vector<GraphicsItem *> GraphicsView::itemsAt(int x, int y, bool sorted) const
 {
     if(!d->scene){
-        return QList<GraphicsItem *>();
+        return std::vector<GraphicsItem *>();
     }
 
     GraphicsRay ray = buildPickRay(x, y);
@@ -572,8 +543,12 @@ void GraphicsView::initializeGL()
 {
     // check opengl version
     if(!(QGLFormat::openGLVersionFlags() & QGLFormat::OpenGL_Version_2_0)){
-        qWarning() << "GraphicsView: OpenGL version is not 2.0 or later.";
+        qWarning() << "Error: OpenGL version is not 2.0 or later.";
+        d->hardwareIsSupported = false;
+        return;
     }
+
+    d->hardwareIsSupported = true;
 
     // background color
     qglClearColor(d->backgroundColor);
@@ -605,7 +580,7 @@ void GraphicsView::initializeGL()
 
 void GraphicsView::paintGL()
 {
-    if(!d->scene){
+    if(!d->scene || !d->camera){
         return;
     }
 
@@ -636,17 +611,32 @@ void GraphicsView::paintGL()
         camera()->setChanged(false);
     }
 
+    // setup fog
+    float fogColor[] = {d->backgroundColor.redF(),
+                        d->backgroundColor.greenF(),
+                        d->backgroundColor.blueF()};
+    glFogfv(GL_FOG_COLOR, fogColor);
+
+    if(d->fogEnabled){
+        glFogf(GL_FOG_START, nearClipDistance());
+        glFogf(GL_FOG_END, farClipDistance());
+    }
+    else{
+        glFogf(GL_FOG_START, farClipDistance());
+        glFogf(GL_FOG_END, farClipDistance());
+    }
+
     // draw items
     GraphicsPainter painter;
 
-    QList<GraphicsItem *> nonOpaqueItems;
+    std::vector<GraphicsItem *> nonOpaqueItems;
 
     foreach(GraphicsItem *item, scene()->items()){
         if(!item->isVisible())
             continue;
 
         if(!item->isOpaque()){
-            nonOpaqueItems.append(item);
+            nonOpaqueItems.push_back(item);
         }
         else{
             glPushMatrix();
@@ -661,7 +651,7 @@ void GraphicsView::paintGL()
         }
     }
 
-    if(!nonOpaqueItems.isEmpty()){
+    if(!nonOpaqueItems.empty()){
         glEnable(GL_BLEND);
 
         foreach(GraphicsItem *item, nonOpaqueItems){
@@ -688,7 +678,10 @@ void GraphicsView::resizeGL(int width, int height)
     // setup projection matrix
     glMatrixMode(GL_PROJECTION);
     float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
-    d->projectionTransform = GraphicsTransform::perspective(d->fieldOfView, aspectRatio, d->nearClipDistance, d->farClipDistance);
+    d->projectionTransform = GraphicsTransform::perspective(d->fieldOfView,
+                                                            aspectRatio,
+                                                            d->nearClipDistance,
+                                                            d->farClipDistance);
     glLoadMatrixf(d->projectionTransform.data());
     glMatrixMode(GL_MODELVIEW);
 
@@ -701,6 +694,17 @@ void GraphicsView::resizeGL(int width, int height)
 // --- Events -------------------------------------------------------------- //
 void GraphicsView::paintEvent(QPaintEvent *event)
 {
+    if(!d->hardwareIsSupported){
+        // if the graphics hardware doesn't support OpenGL 2.0 or
+        // later just draw an error message on screen and return
+        QPainter painter(this);
+        painter.setPen(Qt::white);
+        painter.setBrush(Qt::white);
+        painter.drawText(QPointF(5, 25),
+                         "Error: OpenGL 2.0 not supported by hardware.");
+        return;
+    }
+
     // draw opengl
     makeCurrent();
     paintGL();

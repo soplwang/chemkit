@@ -35,10 +35,12 @@
 
 #include "xtcfileformat.h"
 
-#include <QTemporaryFile>
+#include <boost/filesystem.hpp>
+#include <boost/make_shared.hpp>
 
 #include <rpc/types.h>
 #include <rpc/xdr.h>
+#include <rpc/types.h>
 #include <chemkit/vector3.h>
 #include <chemkit/unitcell.h>
 #include <chemkit/trajectory.h>
@@ -56,26 +58,18 @@ XtcFileFormat::XtcFileFormat()
 bool XtcFileFormat::read(std::istream &input, chemkit::TrajectoryFile *file)
 {
     // read data into temporary file
-    QTemporaryFile dataFile;
-    dataFile.open();
+    std::string tempFileName = (boost::filesystem::temp_directory_path() /
+                                boost::filesystem::unique_path()).string();
 
-    unsigned int dataSize = 0;
-    for(;;){
-        char c = input.get();
-        if(input.eof()){
-            break;
-        }
-
-        dataFile.write(&c, 1);
-        dataSize++;
-    }
-
-    dataFile.close();
+    std::ofstream ostream(tempFileName.c_str());
+    ostream << input.rdbuf();
+    size_t dataSize = ostream.tellp();
+    ostream.close();
 
     XDR xdrs;
-    xdropen(&xdrs, dataFile.fileName().toAscii().constData(), "r");
+    xdropen(&xdrs, tempFileName.c_str(), "r");
 
-    chemkit::Trajectory *trajectory = new chemkit::Trajectory;
+    boost::shared_ptr<chemkit::Trajectory> trajectory = boost::make_shared<chemkit::Trajectory>();
 
     while(xdr_getpos(&xdrs) < dataSize){
         // read magic (should be '1995')
@@ -85,12 +79,17 @@ bool XtcFileFormat::read(std::istream &input, chemkit::TrajectoryFile *file)
             break;
         }
 
-        // create new frame
-        chemkit::TrajectoryFrame *frame = trajectory->addFrame();
-
         // read atom count
         int atomCount = 0;
         xdr_int(&xdrs, &atomCount);
+
+        // set trajectory size
+        if(trajectory->isEmpty() || trajectory->size() < size_t(atomCount)){
+            trajectory->resize(atomCount);
+        }
+
+        // create new frame
+        chemkit::TrajectoryFrame *frame = trajectory->addFrame();
 
         // read frame number
         int frameNumber = 0;
@@ -119,8 +118,6 @@ bool XtcFileFormat::read(std::istream &input, chemkit::TrajectoryFile *file)
         float precision = 1000.0f;
         xdr3dfcoord(&xdrs, &coordinateData[0], &atomCount, &precision);
 
-        chemkit::CartesianCoordinates coordinates(atomCount);
-
         for(int i = 0; i < atomCount; i++){
             // multiply each coordinate by 10 to convert
             // from nanometers to angstroms
@@ -128,16 +125,16 @@ bool XtcFileFormat::read(std::istream &input, chemkit::TrajectoryFile *file)
                                      coordinateData[i*3+1] * 10,
                                      coordinateData[i*3+2] * 10);
 
-            coordinates.setPosition(i, position);
+            frame->setPosition(i, position);
         }
-
-        frame->setCoordinates(&coordinates);
     }
 
     xdrclose(&xdrs);
 
+    // remove temp file
+    boost::filesystem::remove(tempFileName);
+
     if(trajectory->isEmpty()){
-        delete trajectory;
         return false;
     }
 

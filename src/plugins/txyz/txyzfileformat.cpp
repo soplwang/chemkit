@@ -84,7 +84,7 @@ bool TxyzFileFormat::read(QIODevice *iodev, chemkit::MoleculeFile *file)
         return false;
     }
 
-    chemkit::Molecule *molecule = new chemkit::Molecule();
+    boost::shared_ptr<chemkit::Molecule> molecule(new chemkit::Molecule);
     QVector<QList<int> > bondLists(atomCount);
 
     for(int i = 0; i < atomCount; i++){
@@ -102,7 +102,8 @@ bool TxyzFileFormat::read(QIODevice *iodev, chemkit::MoleculeFile *file)
         }
         // else we interpret it as an atomic symbol
         else{
-            atomicNumber = chemkit::Element(line[1].toStdString()).atomicNumber();
+            QByteArray symbol = line[1].toAscii();
+            atomicNumber = chemkit::Element(symbol.constData()).atomicNumber();
         }
 
         // add the atom if we have a valid atomic number
@@ -156,7 +157,7 @@ bool TxyzFileFormat::write(const chemkit::MoleculeFile *file, QIODevice *iodev)
         return false;
     }
 
-    const chemkit::Molecule *molecule = file->molecule();
+    const boost::shared_ptr<chemkit::Molecule> &molecule = file->molecule();
 
     // write atom count and molecule name
     iodev->write(QString("%1 %2\n").arg(molecule->atomCount())
@@ -174,14 +175,14 @@ bool TxyzFileFormat::write(const chemkit::MoleculeFile *file, QIODevice *iodev)
                                             .arg("0", 6)
                                             .toAscii());
 
-        // list of atom indicies for each bonded neighbor
+        // list of atom indices for each bonded neighbor
         QList<int> neighborIndicies;
         foreach(const chemkit::Atom *neighbor, atom->neighbors()){
             neighborIndicies.append(neighbor->index());
         }
         qSort(neighborIndicies);
 
-        // write neighbor indicies
+        // write neighbor indices
         foreach(int neighborIndex, neighborIndicies){
             iodev->write(QString("%1").arg(neighborIndex+1, 6).toAscii());
         }

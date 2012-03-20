@@ -38,6 +38,8 @@
 
 #include <algorithm>
 
+#include <boost/make_shared.hpp>
+
 #include <chemkit/atom.h>
 #include <chemkit/bondpredictor.h>
 #include <chemkit/graphicscamera.h>
@@ -61,7 +63,6 @@ BuilderWindow::BuilderWindow(QWidget *parent)
 {
     // properties
     m_file = 0;
-    m_molecule = 0;
     m_inMoleculeEdit = false;
     m_showPymolSES = false;
     m_showPymolSAS = false;
@@ -136,10 +137,9 @@ BuilderWindow::BuilderWindow(QWidget *parent)
     connect(m_energyMinimizer, SIGNAL(stateChanged(int)), SLOT(minimizerStateChanged(int)));
 
     // setup tools
-    m_tool = 0;
-    m_navigateTool = new NavigateTool(this);
-    m_buildTool = new BuildTool(this);
-    m_manipulateTool = new ManipulateTool(this);
+    m_navigateTool = boost::make_shared<NavigateTool>(this);
+    m_buildTool = boost::make_shared<BuildTool>(this);
+    m_manipulateTool = boost::make_shared<ManipulateTool>(this);
     setTool(m_navigateTool);
 
     // dock widgets
@@ -167,18 +167,13 @@ BuilderWindow::BuilderWindow(QWidget *parent)
     ui->menuView->addAction(dockWidget->toggleViewAction());
 
     //setMolecule(0);
-    setMolecule(new chemkit::Molecule);
+    setMolecule(boost::make_shared<chemkit::Molecule>());
 
     setTool(m_buildTool);
 }
 
 BuilderWindow::~BuilderWindow()
 {
-    ui->graphicsView->setTool(0);
-    delete m_navigateTool;
-    delete m_buildTool;
-    delete m_manipulateTool;
-
 //    delete m_editor;
 //    delete m_molecule;
 //    delete m_energyMinimizer;
@@ -187,7 +182,7 @@ BuilderWindow::~BuilderWindow()
     delete ui;
 }
 
-void BuilderWindow::setTool(BuilderTool *tool)
+void BuilderWindow::setTool(const boost::shared_ptr<BuilderTool> &tool)
 {
     if(tool == m_tool){
         return; // no change
@@ -195,7 +190,7 @@ void BuilderWindow::setTool(BuilderTool *tool)
 
     m_tool = tool;
     ui->graphicsView->setTool(tool);
-    emit toolChanged(tool);
+    emit toolChanged(tool.get());
 
     if(tool == m_navigateTool)
         ui->actionNavigate->setChecked(true);
@@ -205,14 +200,11 @@ void BuilderWindow::setTool(BuilderTool *tool)
         ui->actionManipulate->setChecked(true);
 }
 
-void BuilderWindow::setMolecule(chemkit::Molecule *molecule)
+void BuilderWindow::setMolecule(const boost::shared_ptr<chemkit::Molecule> &molecule)
 {
     if(m_molecule == molecule){
         return;
     }
-
-    // set molecule
-    m_molecule = molecule;
 
     // remove old molecule item
     if(m_moleculeItem){
@@ -240,22 +232,25 @@ void BuilderWindow::setMolecule(chemkit::Molecule *molecule)
         m_showPymolSAS = false;
     }
 
+    // set molecule
+    m_molecule = molecule;
+
     // add new molecule item
     if(molecule){
-        m_moleculeItem = new chemkit::GraphicsMoleculeItem(molecule);
+        m_moleculeItem = new chemkit::GraphicsMoleculeItem(molecule.get());
         ui->graphicsView->addItem(m_moleculeItem);
     }
 
     // reset editor
-    m_editor->setMolecule(molecule);
+    m_editor->setMolecule(molecule.get());
 
     // reset energy minimizer
-    m_energyMinimizer->setMolecule(molecule);
+    m_energyMinimizer->setMolecule(molecule.get());
 
     centerCamera();
 
     // notify observers
-    emit moleculeChanged(molecule);
+    emit moleculeChanged(molecule.get());
 }
 
 void BuilderWindow::showPymolSES(bool show)
@@ -300,7 +295,7 @@ void BuilderWindow::showPymolSAS(bool show)
     }
 }
 
-chemkit::Molecule* BuilderWindow::molecule() const
+boost::shared_ptr<chemkit::Molecule> BuilderWindow::molecule() const
 {
     return m_molecule;
 }
@@ -353,7 +348,8 @@ void BuilderWindow::openFile(const QString &fileName)
     closeFile();
 
     // open and read file
-    chemkit::MoleculeFile *file = new chemkit::MoleculeFile(fileName.toStdString());
+    QByteArray fileNameString = fileName.toAscii();
+    chemkit::MoleculeFile *file = new chemkit::MoleculeFile(fileNameString.constData());
     if(!file->read()){
         QMessageBox::critical(this, "Error", QString("Error opening file: %1").arg(file->errorString().c_str()));
         delete file;
@@ -408,12 +404,14 @@ void BuilderWindow::saveFile()
 
 void BuilderWindow::saveFileAs(const QString &fileName)
 {
+    QByteArray fileNameString = fileName.toAscii();
+
     if(!m_file){
-        m_file = new chemkit::MoleculeFile(fileName.toStdString());
+        m_file = new chemkit::MoleculeFile(fileNameString.constData());
         m_file->addMolecule(m_molecule);
     }
 
-    m_file->setFileName(fileName.toStdString());
+    m_file->setFileName(fileNameString.constData());
     saveFile();
 }
 
@@ -435,7 +433,7 @@ void BuilderWindow::saveFileAs()
 void BuilderWindow::closeFile()
 {
     // remove molecule
-    setMolecule(0);
+    setMolecule(boost::shared_ptr<chemkit::Molecule>());
 
     // remove file
     delete m_file;
@@ -552,11 +550,10 @@ void BuilderWindow::predictBonds()
     foreach(chemkit::Bond *bond, m_molecule->bonds())
         m_molecule->removeBond(bond);
 
-    chemkit::BondPredictor predictor(m_molecule);
+    chemkit::BondPredictor predictor(m_molecule.get());
 
-    std::pair<chemkit::Atom *, chemkit::Atom *> bondedPair;
-    foreach(bondedPair, predictor.predictedBonds()){
-        editor()->addBond(bondedPair.first, bondedPair.second);
+    foreach(const chemkit::BondPredictor::PredictedBond &bond, predictor.predictedBonds()){
+        editor()->addBond(boost::get<0>(bond), boost::get<1>(bond), boost::get<2>(bond));
     }
 
     editor()->endEdit();
@@ -624,6 +621,6 @@ void BuilderWindow::setCanDelete(bool canDelete)
 
 void BuilderWindow::moleculeProperties()
 {
-    MoleculePropertiesDialog dialog(m_molecule, this);
+    MoleculePropertiesDialog dialog(m_molecule.get(), this);
     dialog.exec();
 }

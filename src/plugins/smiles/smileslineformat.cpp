@@ -96,7 +96,7 @@ int readAromaticSymbol(const char **p)
         return chemkit::Atom::Tellurium;
     }
     else{
-        int atomicNumber = chemkit::Element::atomicNumber(toupper(first));
+        int atomicNumber = chemkit::Element::fromSymbol(toupper(first)).atomicNumber();
         if(!atomicNumber){
             (*p)--;
             return 0;
@@ -194,7 +194,7 @@ chemkit::Variant SmilesLineFormat::defaultOption(const std::string &name) const
 {
     if(name == "stereochemistry")
         return true;
-    else if(name == "add-hydrogens")
+    else if(name == "add-implicit-hydrogens")
         return true;
     else if(name == "kekulize")
         return false;
@@ -203,18 +203,19 @@ chemkit::Variant SmilesLineFormat::defaultOption(const std::string &name) const
 }
 
 // --- Input and Output ---------------------------------------------------- //
-bool SmilesLineFormat::read(const std::string &formula, chemkit::Molecule *molecule)
+chemkit::Molecule* SmilesLineFormat::read(const std::string &formula)
 {
-    return read(formula.c_str(), molecule);
+    return read(formula.c_str());
 }
 
-bool SmilesLineFormat::read(const char *formula, chemkit::Molecule *molecule)
+chemkit::Molecule* SmilesLineFormat::read(const char *formula)
 {
     const char *p = formula;
     int number = 0;
     chemkit::Atom *atom = 0;
     chemkit::Bond *bond = 0;
     chemkit::Atom *lastAtom = 0;
+    chemkit::Bond *lastDoubleBond = 0;
     int bondOrder = 1;
     std::map<chemkit::Atom *, int> charges; // atom -> formal charge
     std::vector<chemkit::Atom *> organicAtoms;
@@ -224,6 +225,16 @@ bool SmilesLineFormat::read(const char *formula, chemkit::Molecule *molecule)
     std::stack<BranchState> branchRoots;
     RingState ringState;
     std::map<int, RingState> rings;
+
+    enum BondStereo {
+        Up = 1,
+        Down = 2
+    };
+
+    int bondStereo = 0;
+
+    // create molecule
+    chemkit::Molecule *molecule = new chemkit::Molecule;
 
     // go to initial state
     if(isTerminator(*p)) goto done;
@@ -244,11 +255,11 @@ bracket_atom:
     // symbol
     if(isupper(*p)){
         if(islower(*(p+1))){
-            atom = molecule->addAtom(chemkit::Element::atomicNumber(p, 2));
+            atom = molecule->addAtom(chemkit::Element::fromSymbol(p, 2));
             p += 2;
         }
         else{
-            atom = molecule->addAtom(chemkit::Element::atomicNumber(*p));
+            atom = molecule->addAtom(chemkit::Element::fromSymbol(*p));
             p++; // move past atom symbol
         }
 
@@ -274,7 +285,7 @@ bracket_atom:
         }
         bondOrder = chemkit::Bond::Single;
 
-        if(aromatic){
+        if(bond && aromatic){
             aromaticBonds.push_back(bond);
         }
     }
@@ -372,6 +383,10 @@ organic_atom:
     if(lastAtom){
         if(bondOrder){
             bond = molecule->addBond(atom, lastAtom, bondOrder);
+
+            if(bondOrder == chemkit::Bond::Double){
+                lastDoubleBond = bond;
+            }
         }
 
         bondOrder = chemkit::Bond::Single;
@@ -404,6 +419,10 @@ aromatic_atom:
     if(lastAtom){
         if(bondOrder){
             bond = molecule->addBond(atom, lastAtom, bondOrder);
+
+            if(bondOrder == chemkit::Bond::Double){
+                lastDoubleBond = bond;
+            }
 
             if(aromatic){
                 aromaticBonds.push_back(bond);
@@ -440,6 +459,40 @@ bond:
         bondOrder = 1;
     else if(*p == '\\')
         bondOrder = 1;
+
+    // set stereochemistry
+    if(*p == '/'){
+        if(bondStereo != 0 && lastDoubleBond){
+            if(bondStereo == Up){
+                lastDoubleBond->setStereochemistry(chemkit::Stereochemistry::E);
+            }
+            else if(bondStereo == Down){
+                lastDoubleBond->setStereochemistry(chemkit::Stereochemistry::Z);
+            }
+
+            bondStereo = 0;
+            lastDoubleBond = 0;
+        }
+        else{
+            bondStereo = Up;
+        }
+    }
+    else if(*p == '\\'){
+        if(bondStereo != 0 && lastDoubleBond){
+            if(bondStereo == Up){
+                lastDoubleBond->setStereochemistry(chemkit::Stereochemistry::Z);
+            }
+            else if(bondStereo == Down){
+                lastDoubleBond->setStereochemistry(chemkit::Stereochemistry::E);
+            }
+
+            bondStereo = 0;
+            lastDoubleBond = 0;
+        }
+        else{
+            bondStereo = Down;
+        }
+    }
 
     p++; // move past bond symbol
 
@@ -547,7 +600,8 @@ invalid_atom_error:
     goto error;
 
 error:
-    return false;
+    delete molecule;
+    return 0;
 
 done:
     // kekulize aromatic bonds
@@ -555,8 +609,8 @@ done:
         Kekulizer::kekulize(aromaticBonds);
     }
 
-    // add hydrogens (if enabled)
-    if(option("add-hydrogens").toBool()){
+    // add implicit hydrogens (if enabled)
+    if(option("add-implicit-hydrogens").toBool()){
         foreach(chemkit::Atom *atom, organicAtoms){
             while(atom->formalCharge() < 0){
                 chemkit::Atom *hydrogen = molecule->addAtom(chemkit::Atom::Hydrogen);
@@ -565,7 +619,7 @@ done:
         }
     }
 
-    return true;
+    return molecule;
 }
 
 std::string SmilesLineFormat::write(const chemkit::Molecule *molecule)

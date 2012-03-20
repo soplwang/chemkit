@@ -35,21 +35,21 @@
 
 #include "mcdltest.h"
 
-#include <algorithm>
+#include <boost/range/algorithm.hpp>
 
 #include <chemkit/molecule.h>
 #include <chemkit/lineformat.h>
 
 void McdlTest::initTestCase()
 {
-    std::vector<std::string> formats = chemkit::LineFormat::formats();
-    QVERIFY(std::find(formats.begin(), formats.end(), "mcdl") != formats.end());
+    // verify that the mcdl plugin registered itself correctly
+    QVERIFY(boost::count(chemkit::LineFormat::formats(), "mcdl") == 1);
 }
 
 void McdlTest::read_data()
 {
-    QTest::addColumn<QString>("mcdl");
-    QTest::addColumn<QString>("formula");
+    QTest::addColumn<QString>("mcdlString");
+    QTest::addColumn<QString>("formulaString");
     QTest::addColumn<int>("atomCount");
     QTest::addColumn<int>("bondCount");
     QTest::addColumn<int>("ringCount");
@@ -73,23 +73,26 @@ void McdlTest::read()
         return;
     }
 
-    QFETCH(QString, mcdl);
-    QFETCH(QString, formula);
+    QFETCH(QString, mcdlString);
+    QFETCH(QString, formulaString);
     QFETCH(int, atomCount);
     QFETCH(int, bondCount);
     QFETCH(int, ringCount);
 
-    chemkit::Molecule molecule;
-    bool ok = mcdlFormat->read(mcdl.toStdString(), &molecule);
-    if(!ok)
+    QByteArray mcdl = mcdlString.toAscii();
+    QByteArray formula = formulaString.toAscii();
+
+    chemkit::Molecule *molecule = mcdlFormat->read(mcdl.constData());
+    if(!molecule)
         qDebug() << mcdlFormat->errorString().c_str();
-    QVERIFY(ok);
+    QVERIFY(molecule != 0);
 
-    QCOMPARE(molecule.formula(), formula.toStdString());
-    QCOMPARE(molecule.atomCount(), size_t(atomCount));
-    QCOMPARE(molecule.bondCount(), size_t(bondCount));
-    QCOMPARE(molecule.ringCount(), size_t(ringCount));
+    QCOMPARE(molecule->formula().c_str(), formula.constData());
+    QCOMPARE(molecule->atomCount(), size_t(atomCount));
+    QCOMPARE(molecule->bondCount(), size_t(bondCount));
+    QCOMPARE(molecule->ringCount(), size_t(ringCount));
 
+    delete molecule;
     delete mcdlFormat;
 }
 

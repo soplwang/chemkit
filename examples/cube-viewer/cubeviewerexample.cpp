@@ -78,9 +78,6 @@ CubeViewerExample::CubeViewerExample(QWidget *parent)
     // setup scalar fields
     m_positiveScalarField = 0;
     m_negativeScalarField = 0;
-
-    // add navigation tool
-    m_view->setTool(new chemkit::GraphicsNavigationTool);
 }
 
 CubeViewerExample::~CubeViewerExample()
@@ -111,7 +108,8 @@ void CubeViewerExample::openFile(const QString &fileName)
     closeFile();
 
     // open new file
-    chemkit::MoleculeFile file(fileName.toStdString());
+    QByteArray fileNameString = fileName.toAscii();
+    chemkit::MoleculeFile file(fileNameString.constData());
     bool ok = file.read();
     if(!ok){
         QMessageBox::critical(this,
@@ -121,10 +119,9 @@ void CubeViewerExample::openFile(const QString &fileName)
     }
 
     // setup molecule
-    chemkit::Molecule *molecule = file.molecule();
-    chemkit::BondPredictor::predictBonds(molecule);
-    m_moleculeItem->setMolecule(molecule);
-    file.removeMolecule(molecule);
+    m_molecule = file.molecule();
+    chemkit::BondPredictor::predictBonds(m_molecule.get());
+    m_moleculeItem->setMolecule(m_molecule.get());
 
     // setup scalar fields and isosurface items
     m_positiveScalarField = readVolumeData(fileName);

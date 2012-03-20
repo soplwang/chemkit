@@ -58,14 +58,15 @@ void Gen3dTest::benzene()
     process.waitForFinished();
 
     // read output file
-    chemkit::MoleculeFile file(output.fileName().toStdString());
+    QByteArray outputFileName = output.fileName().toAscii();
+    chemkit::MoleculeFile file(outputFileName.constData());
     bool ok = file.read();
     if(!ok)
         qDebug() << file.errorString().c_str();
     QVERIFY(ok);
 
     // check formula
-    chemkit::Molecule *molecule = file.molecule();
+    boost::shared_ptr<chemkit::Molecule> molecule = file.molecule();
     QVERIFY(molecule != 0);
     QCOMPARE(molecule->formula(), std::string("C6H6"));
 

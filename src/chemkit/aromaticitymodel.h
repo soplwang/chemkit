@@ -41,6 +41,8 @@
 #include <string>
 #include <vector>
 
+#include "plugin.h"
+
 namespace chemkit {
 
 class Atom;
@@ -52,16 +54,13 @@ class AromaticityModelPrivate;
 class CHEMKIT_EXPORT AromaticityModel
 {
 public:
-    // typedefs
-    typedef AromaticityModel* (*CreateFunction)();
-
     // construction and destruction
     AromaticityModel();
     virtual ~AromaticityModel();
 
     // properties
     std::string name() const;
-    void setMolecule(const Molecule *molecule);
+    virtual void setMolecule(const Molecule *molecule);
     const Molecule* molecule() const;
 
     // aromaticity
@@ -86,5 +85,9 @@ private:
 };
 
 } // end chemkit namespace
+
+/// Registers a aromaticity model with \p name.
+#define CHEMKIT_REGISTER_AROMATICITY_MODEL(name, className) \
+    CHEMKIT_REGISTER_PLUGIN_CLASS(name, chemkit::AromaticityModel, className)
 
 #endif // CHEMKIT_AROMATICITYMODEL_H

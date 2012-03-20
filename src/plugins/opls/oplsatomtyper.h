@@ -50,18 +50,17 @@ public:
     OplsAtomTyper(const chemkit::Molecule *molecule = 0);
     ~OplsAtomTyper();
 
-    // types
-    int typeNumber(const chemkit::Atom *atom) const;
-    std::string typeString(const chemkit::Atom *atom) const;
+    // properties
+    void setMolecule(const chemkit::Molecule *molecule) CHEMKIT_OVERRIDE;
 
-protected:
-    void assignTypes(const chemkit::Molecule *molecule);
+    // types
+    int typeNumber(const chemkit::Atom *atom) const CHEMKIT_OVERRIDE;
+    std::string typeString(const chemkit::Atom *atom) const CHEMKIT_OVERRIDE;
 
 private:
     void setTypeNumber(int index, int typeNumber);
 
 private:
-    const chemkit::Molecule *m_molecule;
     std::vector<int> m_typeNumbers;
 };
 

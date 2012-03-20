@@ -49,15 +49,29 @@ UffAtomTyper::~UffAtomTyper()
 {
 }
 
-// --- Types --------------------------------------------------------------- //
-std::string UffAtomTyper::typeString(int index) const
+// --- Properties ---------------------------------------------------------- //
+void UffAtomTyper::setMolecule(const chemkit::Molecule *molecule)
 {
-    return m_types[index];
+    chemkit::AtomTyper::setMolecule(molecule);
+
+    if(!molecule){
+        m_types.resize(0);
+        return;
+    }
+
+    m_types = std::vector<std::string>(molecule->atomCount());
+
+    for(size_t index = 0; index < molecule->size(); index++){
+        const chemkit::Atom *atom = molecule->atom(index);
+
+        m_types[index] = atomType(atom);
+    }
 }
 
+// --- Types --------------------------------------------------------------- //
 std::string UffAtomTyper::typeString(const chemkit::Atom *atom) const
 {
-    return typeString(atom->index());
+    return m_types[atom->index()];
 }
 
 // --- Internal Methods ---------------------------------------------------- //
@@ -113,6 +127,10 @@ std::string UffAtomTyper::atomType(const chemkit::Atom *atom) const
             return "N_2";
         }
         else if(atom->neighborCount() == 2){
+            return "N_1";
+        }
+        else if(atom->neighborCount() == 1 &&
+                atom->valence() == 3){
             return "N_1";
         }
     }
@@ -229,20 +247,4 @@ std::string UffAtomTyper::atomType(const chemkit::Atom *atom) const
     }
 
     return std::string();
-}
-
-void UffAtomTyper::assignTypes(const chemkit::Molecule *molecule)
-{
-    if(!molecule){
-        m_types.resize(0);
-        return;
-    }
-
-    m_types = std::vector<std::string>(molecule->atomCount());
-
-    for(size_t index = 0; index < molecule->size(); index++){
-        const chemkit::Atom *atom = molecule->atom(index);
-
-        m_types[index] = atomType(atom);
-    }
 }

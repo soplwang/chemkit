@@ -41,15 +41,16 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <cstddef>
 
 #include <boost/range/iterator_range.hpp>
 
-#include "moiety.h"
+#include "bitset.h"
 #include "point3.h"
 #include "element.h"
 #include "variant.h"
 #include "vector3.h"
+#include "coordinateset.h"
+#include "moleculewatcher.h"
 
 namespace chemkit {
 
@@ -57,7 +58,6 @@ class Atom;
 class Bond;
 class Ring;
 class Fragment;
-class CoordinateSet;
 class MoleculePrivate;
 class MoleculeWatcher;
 class Stereochemistry;
@@ -68,33 +68,12 @@ class CartesianCoordinates;
 class CHEMKIT_EXPORT Molecule
 {
 public:
-    // enumerations
-    enum ChangeType {
-        AtomAdded,
-        AtomRemoved,
-        AtomElementChanged,
-        AtomMassNumberChanged,
-        AtomPartialChargeChanged,
-        AtomPositionChanged,
-        AtomChiralityChanged,
-        BondAdded,
-        BondRemoved,
-        BondOrderChanged,
-        NameChanged
-    };
-
-    enum CompareFlag {
-        CompareAtomsOnly = 0x00,
-        CompareHydrogens = 0x01,
-        CompareAromaticity = 0x02
-    };
-
     // typedefs
     typedef boost::iterator_range<std::vector<Atom *>::const_iterator> AtomRange;
     typedef boost::iterator_range<std::vector<Bond *>::const_iterator> BondRange;
     typedef boost::iterator_range<std::vector<Ring *>::const_iterator> RingRange;
     typedef boost::iterator_range<std::vector<Fragment *>::const_iterator> FragmentRange;
-    typedef boost::iterator_range<std::vector<CoordinateSet *>::const_iterator> CoordinateSetRange;
+    typedef boost::iterator_range<std::vector<boost::shared_ptr<CoordinateSet> >::const_iterator> CoordinateSetRange;
 
     // construction and destruction
     Molecule();
@@ -108,6 +87,7 @@ public:
     std::string formula() const;
     std::string formula(const std::string &format) const;
     Variant descriptor(const std::string &name) const;
+    Bitset fingerprint(const std::string &name) const;
     inline size_t size() const;
     inline bool isEmpty() const;
     Real mass() const;
@@ -118,10 +98,15 @@ public:
     Atom* addAtom(const Element &element);
     Atom* addAtomCopy(const Atom *atom);
     void removeAtom(Atom *atom);
+    template<typename Predicate> void removeAtomIf(Predicate predicate);
+    void removeAtoms(const std::vector<Atom *> &atoms);
+    template<typename Range> void removeAtoms(Range range);
     Atom* atom(size_t index) const;
     inline AtomRange atoms() const;
     inline size_t atomCount() const;
     size_t atomCount(const Element &element) const;
+    void setAtomCapacity(size_t capacity);
+    size_t atomCapacity() const;
     bool contains(const Atom *atom) const;
     bool contains(const Element &element) const;
     Bond* addBond(Atom *a, Atom *b, int order = 1);
@@ -129,20 +114,18 @@ public:
     void removeBond(Bond *bond);
     void removeBond(Atom *a, Atom *b);
     void removeBond(size_t a, size_t b);
+    template<typename Predicate> void removeBondIf(Predicate predicate);
+    void removeBonds(const std::vector<Bond *> &bonds);
+    template<typename Range> void removeBonds(Range range);
     Bond* bond(size_t index) const;
     Bond* bond(const Atom *a, const Atom *b) const;
     Bond* bond(size_t a, size_t b) const;
     BondRange bonds() const;
     size_t bondCount() const;
+    void setBondCapacity(size_t capacity);
+    size_t bondCapacity() const;
     bool contains(const Bond *bond) const;
     void clear();
-
-    // comparison
-    bool equals(const Molecule *molecule, int flags = 0) const;
-    bool contains(const Molecule *molecule, int flags = 0) const;
-    bool isSubstructureOf(const Molecule *molecule, int flags = 0) const;
-    std::map<Atom *, Atom *> mapping(const Molecule *molecule, int flags = 0) const;
-    Moiety find(const Molecule *moiety, int flags = 0) const;
 
     // ring perception
     Ring* ring(size_t index) const;
@@ -158,13 +141,13 @@ public:
 
     // coordinates
     CartesianCoordinates* coordinates() const;
-    void addCoordinateSet(CoordinateSet *coordinates);
+    void addCoordinateSet(const boost::shared_ptr<CoordinateSet> &coordinates);
     void addCoordinateSet(CartesianCoordinates *coordinates);
     void addCoordinateSet(InternalCoordinates *coordinates);
     void addCoordinateSet(DiagramCoordinates *coordinates);
-    bool removeCoordinateSet(CoordinateSet *coordinates);
-    bool deleteCoordinateSet(CoordinateSet *coordinates);
-    CoordinateSet* coordinateSet(size_t index) const;
+    bool removeCoordinateSet(const boost::shared_ptr<CoordinateSet> &coordinates);
+    boost::shared_ptr<CoordinateSet> coordinateSet(size_t index) const;
+    boost::shared_ptr<CoordinateSet> coordinateSet(CoordinateSet::Type type) const;
     CoordinateSetRange coordinateSets() const;
     size_t coordinateSetCount() const;
 
@@ -183,6 +166,7 @@ public:
 
     // operators
     Molecule& operator=(const Molecule &molecule);
+    Atom* operator[](size_t index) const;
 
 private:
     // internal methods
@@ -192,12 +176,11 @@ private:
     bool fragmentsPerceived() const;
     void perceiveFragments() const;
     Fragment* fragment(const Atom *atom) const;
-    void notifyWatchers(ChangeType type);
-    void notifyWatchers(const Atom *atom, ChangeType type);
-    void notifyWatchers(const Bond *bond, ChangeType type);
+    void notifyWatchers(MoleculeWatcher::ChangeType type);
+    void notifyWatchers(const Atom *atom, MoleculeWatcher::ChangeType type);
+    void notifyWatchers(const Bond *bond, MoleculeWatcher::ChangeType type);
     void addWatcher(MoleculeWatcher *watcher) const;
     void removeWatcher(MoleculeWatcher *watcher) const;
-    bool isSubsetOf(const Molecule *molecule, int flags) const;
     Stereochemistry* stereochemistry();
 
     friend class Atom;

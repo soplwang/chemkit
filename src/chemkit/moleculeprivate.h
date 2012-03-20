@@ -45,6 +45,7 @@
 #include "bond.h"
 #include "point3.h"
 #include "isotope.h"
+#include "variantmap.h"
 
 namespace chemkit {
 
@@ -67,13 +68,13 @@ public:
     bool fragmentsPerceived;
     std::vector<Fragment *> fragments;
     std::vector<MoleculeWatcher *> watchers;
-    std::map<std::string, Variant> data;
+    VariantMap data;
     std::map<const Atom *, Isotope> isotopes;
     std::vector<Real> partialCharges;
     std::vector<std::pair<Atom*, Atom*> > bondAtoms;
     std::vector<std::vector<Bond *> > atomBonds;
     std::vector<Bond::BondOrderType> bondOrders;
-    std::vector<CoordinateSet *> coordinateSets;
+    std::vector<boost::shared_ptr<CoordinateSet> > coordinateSets;
 };
 
 } // end chemkit namespace

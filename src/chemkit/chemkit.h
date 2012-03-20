@@ -36,23 +36,26 @@
 #ifndef CHEMKIT_CHEMKIT_H
 #define CHEMKIT_CHEMKIT_H
 
+#include <cstddef>
+
+#include <boost/config.hpp>
+#include <boost/preprocessor/stringize.hpp>
+
 #include "config.h"
 
-#if defined(CHEMKIT_OS_UNIX)
-    #define CHEMKIT_DECL_IMPORT
-    #define CHEMKIT_DECL_EXPORT  __attribute__((visibility("default")))
-    #define CHEMKIT_DECL_PRIVATE __attribute__((visibility("hidden")))
-#elif defined(CHEMKIT_OS_WIN32)
-    #define CHEMKIT_DECL_IMPORT  __declspec(dllimport)
-    #define CHEMKIT_DECL_EXPORT  __declspec(dllexport)
-    #define CHEMKIT_DECL_PRIVATE
-#endif
+#define CHEMKIT_DECL_IMPORT BOOST_SYMBOL_IMPORT
+#define CHEMKIT_DECL_EXPORT BOOST_SYMBOL_EXPORT
 
 #ifdef CHEMKIT_LIBRARY
     #define CHEMKIT_EXPORT CHEMKIT_DECL_EXPORT
 #else
     #define CHEMKIT_EXPORT CHEMKIT_DECL_IMPORT
 #endif
+
+/// A string containing the version number of the chemkit
+/// library (e.g. "1.2").
+#define CHEMKIT_VERSION_STRING BOOST_PP_STRINGIZE(CHEMKIT_VERSION_MAJOR) "." \
+                               BOOST_PP_STRINGIZE(CHEMKIT_VERSION_MINOR)
 
 #define CHEMKIT_UNUSED(variable) (void) variable
 
@@ -61,6 +64,29 @@
 #define CHEMKIT_DISABLE_COPY(Class) \
     Class(const Class &); \
     Class &operator=(const Class &);
+
+// Define macros for the C++11 final and override identifiers.
+#if defined(__clang__)
+    #if __has_feature(cxx_override_control)
+        #define CHEMKIT_FINAL final
+        #define CHEMKIT_OVERRIDE override
+    #else
+        #define CHEMKIT_FINAL
+        #define CHEMKIT_OVERRIDE
+    #endif
+#elif defined(__GNUC__)
+    #if(__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)) && \
+       (defined(__GXX_EXPERIMENTAL_CXX0X__) || __cplusplus >= 201103L)
+        #define CHEMKIT_FINAL final
+        #define CHEMKIT_OVERRIDE override
+    #else
+        #define CHEMKIT_FINAL
+        #define CHEMKIT_OVERRIDE
+    #endif
+#else
+    #define CHEMKIT_FINAL
+    #define CHEMKIT_OVERRIDE
+#endif
 
 namespace chemkit {
 

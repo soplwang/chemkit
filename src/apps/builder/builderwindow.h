@@ -67,8 +67,8 @@ public:
     chemkit::MoleculeFile* file() const { return m_file; }
 
     // molecule
-    void setMolecule(chemkit::Molecule *molecule);
-    chemkit::Molecule* molecule() const;
+    void setMolecule(const boost::shared_ptr<chemkit::Molecule> &molecule);
+    boost::shared_ptr<chemkit::Molecule> molecule() const;
     chemkit::GraphicsMoleculeItem* moleculeItem() const;
     chemkit::MoleculeEditor* editor() const;
     EnergyMinimizer* energyMinimizer() const;
@@ -83,11 +83,11 @@ public:
     chemkit::GraphicsView* view() const;
 
     // tools
-    void setTool(BuilderTool *tool);
-    BuilderTool* tool() const { return m_tool; }
-    BuilderTool* navigateTool() const { return m_navigateTool; }
-    BuilderTool* buildTool() const { return m_buildTool; }
-    BuilderTool* manipulateTool() const { return m_manipulateTool; }
+    void setTool(const boost::shared_ptr<BuilderTool> &tool);
+    boost::shared_ptr<BuilderTool> tool() const { return m_tool; }
+    boost::shared_ptr<BuilderTool> navigateTool() const { return m_navigateTool; }
+    boost::shared_ptr<BuilderTool> buildTool() const { return m_buildTool; }
+    boost::shared_ptr<BuilderTool> manipulateTool() const { return m_manipulateTool; }
     void setCanCut(bool canCut);
     void setCanCopy(bool canCopy);
     void setCanPaste(bool canPaste);
@@ -126,15 +126,15 @@ private slots:
 private:
     Ui::BuilderWindow *ui;
     chemkit::MoleculeFile *m_file;
-    chemkit::Molecule *m_molecule;
+    boost::shared_ptr<chemkit::Molecule> m_molecule;
     chemkit::GraphicsMoleculeItem *m_moleculeItem;
     chemkit::GraphicsPymolSurfaceItem *m_pymolSESItem;
     chemkit::GraphicsPymolSurfaceItem *m_pymolSASItem;
     chemkit::MoleculeEditor *m_editor;
-    BuilderTool *m_tool;
-    BuilderTool *m_navigateTool;
-    BuilderTool *m_buildTool;
-    BuilderTool *m_manipulateTool;
+    boost::shared_ptr<BuilderTool> m_tool;
+    boost::shared_ptr<BuilderTool> m_navigateTool;
+    boost::shared_ptr<BuilderTool> m_buildTool;
+    boost::shared_ptr<BuilderTool> m_manipulateTool;
     EnergyMinimizer *m_energyMinimizer;
     bool m_inMoleculeEdit;
     bool m_showPymolSES;

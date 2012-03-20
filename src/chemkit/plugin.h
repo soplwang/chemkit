@@ -40,6 +40,9 @@
 
 #include <string>
 
+#include <boost/function.hpp>
+#include <boost/lambda/construct.hpp>
+
 namespace chemkit {
 
 class PluginPrivate;
@@ -58,12 +61,14 @@ protected:
     Plugin(const std::string &name);
     virtual ~Plugin();
 
-    template<class T> bool registerPluginClass(const std::string &name, typename T::CreateFunction function);
+    template<class T> bool registerPluginClass(const std::string &name, boost::function<T* ()> function);
     template<class T> bool unregisterPluginClass(const std::string &name);
 
 private:
     void setLibrary(DynamicLibrary *library);
     DynamicLibrary* library() const;
+    void addClassRegistration(const std::string &name, const std::string &className);
+    void removeClassRegistration(const std::string &name, const std::string &className);
 
     friend class PluginManager;
 
@@ -79,6 +84,13 @@ private:
     { \
         return new className; \
     }
+
+/// Registers a plugin class with \p name.
+///
+/// This method must be called within the constructor of a
+/// Plugin derived class.
+#define CHEMKIT_REGISTER_PLUGIN_CLASS(name, baseClass, pluginClass) \
+    registerPluginClass<baseClass>(name, boost::lambda::new_ptr<pluginClass>())
 
 #include "plugin-inline.h"
 

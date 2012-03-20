@@ -210,7 +210,7 @@ void DynamicLibrary::setErrorString(const std::string &errorString)
     d->errorString = errorString;
 }
 
-/// Returns a string describing the last error that occured.
+/// Returns a string describing the last error that occurred.
 std::string DynamicLibrary::errorString() const
 {
     return d->errorString;
@@ -223,11 +223,11 @@ std::string DynamicLibrary::errorString() const
 bool DynamicLibrary::isLibrary(const std::string &fileName)
 {
 #if defined(CHEMKIT_OS_UNIX)
-# if defined(CHEMKIT_OS_MAC)
+ #if defined(CHEMKIT_OS_MAC)
     return boost::algorithm::ends_with(fileName, ".dylib");
-# else
+ #else
     return boost::algorithm::ends_with(fileName, ".so");
-# endif
+ #endif
 #elif defined(CHEMKIT_OS_WIN32)
     return boost::algorithm::ends_with(fileName, ".dll");
 #else

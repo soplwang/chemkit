@@ -45,15 +45,15 @@ public:
     AmberAtomTyper();
     virtual ~AmberAtomTyper();
 
-    // types
-    virtual chemkit::Variant type(int index) const;
-    virtual chemkit::Variant type(const chemkit::Atom *atom) const;
-    virtual std::string typeString(int index) const;
-    virtual std::string typeString(const chemkit::Atom *atom) const;
+    // properties
+    void setMolecule(const chemkit::Molecule *molecule) CHEMKIT_OVERRIDE;
 
-protected:
+    // types
+    chemkit::Variant type(const chemkit::Atom *atom) const CHEMKIT_OVERRIDE;
+    std::string typeString(const chemkit::Atom *atom) const CHEMKIT_OVERRIDE;
+
+private:
     std::string assignType(const chemkit::Atom *atom) const;
-    virtual void assignTypes(const chemkit::Molecule *molecule);
 
 private:
     std::vector<std::string> m_types;

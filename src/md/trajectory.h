@@ -49,19 +49,20 @@ class CHEMKIT_MD_EXPORT Trajectory
 {
 public:
     // construction and destruction
-    Trajectory();
+    Trajectory(size_t size = 0);
     ~Trajectory();
 
     // properties
-    int size() const;
+    void resize(size_t size);
+    size_t size() const;
     bool isEmpty() const;
 
     // frames
     TrajectoryFrame* addFrame();
     bool removeFrame(TrajectoryFrame *frame);
-    TrajectoryFrame* frame(int index) const;
+    TrajectoryFrame* frame(size_t index) const;
     std::vector<TrajectoryFrame *> frames() const;
-    int frameCount() const;
+    size_t frameCount() const;
 
 private:
     TrajectoryPrivate* const d;

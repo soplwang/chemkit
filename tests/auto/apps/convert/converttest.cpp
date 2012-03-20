@@ -56,8 +56,8 @@ void ConvertTest::convertEthanol()
         qDebug() << inputFile.errorString().c_str();
     }
     QCOMPARE(ok, true);
-    QCOMPARE(inputFile.moleculeCount(), 1);
-    chemkit::Molecule *inputEthanol = inputFile.molecule();
+    QCOMPARE(inputFile.moleculeCount(), size_t(1));
+    boost::shared_ptr<chemkit::Molecule> inputEthanol = inputFile.molecule();
     QCOMPARE(inputEthanol->formula(), std::string("C2H6O"));
 
     // setup output file
@@ -76,18 +76,18 @@ void ConvertTest::convertEthanol()
     process.close();
 
     // read and verify the output file
+    QByteArray outputFileName = output.fileName().toAscii();
     chemkit::MoleculeFile outputFile;
-    ok = outputFile.read(output.fileName().toStdString());
+    ok = outputFile.read(outputFileName.constData());
     if(!ok){
         qDebug() << outputFile.errorString().c_str();
     }
     QCOMPARE(ok, true);
-    QCOMPARE(outputFile.moleculeCount(), 1);
+    QCOMPARE(outputFile.moleculeCount(), size_t(1));
 
     // verify the output molecule
-    chemkit::Molecule *outputEthanol = outputFile.molecule();
+    boost::shared_ptr<chemkit::Molecule> outputEthanol = outputFile.molecule();
     QCOMPARE(outputEthanol->name(), inputEthanol->name());
-    QCOMPARE(outputEthanol->equals(inputEthanol), true);
 }
 
 void ConvertTest::convertBenzenes()
@@ -99,7 +99,7 @@ void ConvertTest::convertBenzenes()
         qDebug() << inputFile.errorString().c_str();
     }
     QCOMPARE(ok, true);
-    QCOMPARE(inputFile.moleculeCount(), 416);
+    QCOMPARE(inputFile.moleculeCount(), size_t(416));
 
     // setup output file
     QTemporaryFile tempFile("XXXXXX.mol2");
@@ -118,20 +118,20 @@ void ConvertTest::convertBenzenes()
 
     // read and verify the output file
     chemkit::MoleculeFile outputFile;
-    ok = outputFile.read(tempFile.fileName().toStdString());
+    QByteArray outputFileName = tempFile.fileName().toAscii();
+    ok = outputFile.read(outputFileName.constData());
     if(!ok){
         qDebug() << outputFile.errorString().c_str();
     }
     QCOMPARE(ok, true);
-    QCOMPARE(outputFile.moleculeCount(), 416);
+    QCOMPARE(outputFile.moleculeCount(), size_t(416));
 
     // verify the output molecules
     for(int i = 0; i < 416; i++){
-        chemkit::Molecule *inputMolecule = inputFile.molecule(i);
-        chemkit::Molecule *outputMolecule = outputFile.molecule(i);
+        boost::shared_ptr<chemkit::Molecule> inputMolecule = inputFile.molecule(i);
+        boost::shared_ptr<chemkit::Molecule> outputMolecule = outputFile.molecule(i);
 
         QCOMPARE(inputMolecule->name(), outputMolecule->name());
-        QCOMPARE(inputMolecule->equals(outputMolecule, chemkit::Molecule::CompareAromaticity | chemkit::Molecule::CompareHydrogens), true);
     }
 }
 

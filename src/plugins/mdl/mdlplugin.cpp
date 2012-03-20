@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2009-2011 Kyle Lutz <kyle.r.lutz@gmail.com>
+** Copyright (C) 2009-2012 Kyle Lutz <kyle.r.lutz@gmail.com>
 ** All rights reserved.
 **
 ** This file is a part of the chemkit project. For more information
@@ -33,45 +33,41 @@
 **
 ******************************************************************************/
 
-#include "mdlplugin.h"
+#include <chemkit/plugin.h>
 
 #include "mdlfileformat.h"
 
-MdlPlugin::MdlPlugin()
-    : chemkit::Plugin("mdl")
+class MdlPlugin : public chemkit::Plugin
 {
-    registerPluginClass<chemkit::MoleculeFileFormat>("mdl", createMdlFormat);
-    registerPluginClass<chemkit::MoleculeFileFormat>("mol", createMolFormat);
-    registerPluginClass<chemkit::MoleculeFileFormat>("sdf", createSdfFormat);
-    registerPluginClass<chemkit::MoleculeFileFormat>("sd", createSdFormat);
-}
+public:
+    MdlPlugin()
+        : chemkit::Plugin("mdl")
+    {
+        registerPluginClass<chemkit::MoleculeFileFormat>("mdl", createMdlFormat);
+        registerPluginClass<chemkit::MoleculeFileFormat>("mol", createMolFormat);
+        registerPluginClass<chemkit::MoleculeFileFormat>("sdf", createSdfFormat);
+        registerPluginClass<chemkit::MoleculeFileFormat>("sd", createSdFormat);
+    }
 
-MdlPlugin::~MdlPlugin()
-{
-    unregisterPluginClass<chemkit::MoleculeFileFormat>("mdl");
-    unregisterPluginClass<chemkit::MoleculeFileFormat>("mol");
-    unregisterPluginClass<chemkit::MoleculeFileFormat>("sdf");
-    unregisterPluginClass<chemkit::MoleculeFileFormat>("sd");
-}
+    static chemkit::MoleculeFileFormat* createMdlFormat()
+    {
+        return new MdlFileFormat("mdl");
+    }
 
-chemkit::MoleculeFileFormat* MdlPlugin::createMdlFormat()
-{
-    return new MdlFileFormat("mdl");
-}
+    static chemkit::MoleculeFileFormat* createMolFormat()
+    {
+        return new MdlFileFormat("mol");
+    }
 
-chemkit::MoleculeFileFormat* MdlPlugin::createMolFormat()
-{
-    return new MdlFileFormat("mol");
-}
+    static chemkit::MoleculeFileFormat* createSdfFormat()
+    {
+        return new MdlFileFormat("sdf");
+    }
 
-chemkit::MoleculeFileFormat* MdlPlugin::createSdfFormat()
-{
-    return new MdlFileFormat("sdf");
-}
-
-chemkit::MoleculeFileFormat* MdlPlugin::createSdFormat()
-{
-    return new MdlFileFormat("sd");
-}
+    static chemkit::MoleculeFileFormat* createSdFormat()
+    {
+        return new MdlFileFormat("sd");
+    }
+};
 
 CHEMKIT_EXPORT_PLUGIN(mdl, MdlPlugin)

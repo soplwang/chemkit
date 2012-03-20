@@ -40,6 +40,7 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <chemkit/variantmap.h>
 #include <chemkit/pluginmanager.h>
 
 namespace chemkit {
@@ -50,7 +51,7 @@ class MoleculeFileFormatPrivate
 public:
     std::string name;
     std::string errorString;
-    std::map<std::string, Variant> options;
+    VariantMap options;
 };
 
 // === MoleculeFileFormat ================================================== //
@@ -63,6 +64,9 @@ public:
 /// molecule file's data. This class only deals with interpreting a
 /// file format. To access the molecules contained in a file use the
 /// MoleculeFile class.
+///
+/// A list of supported molecule file formats is available at:
+/// http://wiki.chemkit.org/Features#Molecule_File_Formats
 ///
 /// \see MoleculeFile, PolymerFileFormat
 
@@ -97,10 +101,18 @@ void MoleculeFileFormat::setOption(const std::string &name, const Variant &value
 /// Returns the option for the format.
 Variant MoleculeFileFormat::option(const std::string &name) const
 {
-    std::map<std::string, Variant>::iterator element = d->options.find(name);
+    VariantMap::iterator element = d->options.find(name);
     if(element != d->options.end()){
         return element->second;
     }
+    else{
+        return defaultOption(name);
+    }
+}
+
+Variant MoleculeFileFormat::defaultOption(const std::string &name) const
+{
+    CHEMKIT_UNUSED(name);
 
     return Variant();
 }
@@ -127,13 +139,13 @@ bool MoleculeFileFormat::write(const MoleculeFile *file, std::ostream &output)
 }
 
 // --- Error Handling ------------------------------------------------------ //
-/// Sets a string describing the last error that occured.
+/// Sets a string describing the last error that occurred.
 void MoleculeFileFormat::setErrorString(const std::string &error)
 {
     d->errorString = error;
 }
 
-/// Returns a string describing the last error that occured.
+/// Returns a string describing the last error that occurred.
 std::string MoleculeFileFormat::errorString() const
 {
     return d->errorString;

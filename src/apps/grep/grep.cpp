@@ -45,6 +45,7 @@
 #include <chemkit/molecule.h>
 #include <chemkit/lineformat.h>
 #include <chemkit/moleculefile.h>
+#include <chemkit/substructurequery.h>
 
 void printHelp(char *argv[], const boost::program_options::options_description &options)
 {
@@ -147,29 +148,30 @@ int main(int argc, char *argv[])
 
     int flags = 0;
     if(compositionOnly){
-        flags |= chemkit::Molecule::CompareAtomsOnly;
+        flags |= chemkit::SubstructureQuery::CompareAtomsOnly;
     }
+    if(exactMatch){
+        flags |= chemkit::SubstructureQuery::CompareExact;
+    }
+
+    chemkit::SubstructureQuery query;
+    query.setMolecule(patternMolecule.get());
+    query.setFlags(flags);
 
     chemkit::MoleculeFile outputFile;
 
-    foreach(chemkit::Molecule *molecule, inputFile.molecules()){
-        bool match = false;
+    std::vector<chemkit::Molecule *> matchingMolecules;
 
-        if(exactMatch){
-            match = patternMolecule->equals(molecule, flags);
-        }
-        else{
-            match = patternMolecule->isSubstructureOf(molecule, flags);
-        }
+    foreach(const boost::shared_ptr<chemkit::Molecule> &molecule, inputFile.molecules()){
+        bool match = query.matches(molecule.get());
 
         if((match && !invertMatch) || (!match && invertMatch)){
-            inputFile.removeMolecule(molecule);
             outputFile.addMolecule(molecule);
         }
     }
 
     if(namesOnly){
-        foreach(const chemkit::Molecule *molecule, outputFile.molecules()){
+        foreach(const boost::shared_ptr<chemkit::Molecule> &molecule, outputFile.molecules()){
             std::cout << molecule->name() << "\n";
         }
     }

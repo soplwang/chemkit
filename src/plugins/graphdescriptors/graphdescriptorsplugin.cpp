@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2009-2011 Kyle Lutz <kyle.r.lutz@gmail.com>
+** Copyright (C) 2009-2012 Kyle Lutz <kyle.r.lutz@gmail.com>
 ** All rights reserved.
 **
 ** This file is a part of the chemkit project. For more information
@@ -33,52 +33,22 @@
 **
 ******************************************************************************/
 
-#include "graphdescriptorsplugin.h"
+#include <chemkit/plugin.h>
 
 #include "graphdescriptors.h"
 
-GraphDescriptorsPlugin::GraphDescriptorsPlugin()
-    : chemkit::Plugin("graphdescriptors")
+class GraphDescriptorsPlugin : public chemkit::Plugin
 {
-    registerPluginClass<chemkit::MolecularDescriptor>("graph-density", createGraphDensityDescriptor);
-    registerPluginClass<chemkit::MolecularDescriptor>("graph-diameter", createGraphDiameterDescriptor);
-    registerPluginClass<chemkit::MolecularDescriptor>("graph-order", createGraphOrderDescriptor);
-    registerPluginClass<chemkit::MolecularDescriptor>("graph-radius", createGraphRadiusDescriptor);
-    registerPluginClass<chemkit::MolecularDescriptor>("graph-size", createGraphSizeDescriptor);
-}
-
-GraphDescriptorsPlugin::~GraphDescriptorsPlugin()
-{
-    unregisterPluginClass<chemkit::MolecularDescriptor>("graph-density");
-    unregisterPluginClass<chemkit::MolecularDescriptor>("graph-diameter");
-    unregisterPluginClass<chemkit::MolecularDescriptor>("graph-order");
-    unregisterPluginClass<chemkit::MolecularDescriptor>("graph-radius");
-    unregisterPluginClass<chemkit::MolecularDescriptor>("graph-size");
-}
-
-chemkit::MolecularDescriptor* GraphDescriptorsPlugin::createGraphDensityDescriptor()
-{
-    return new GraphDensityDescriptor;
-}
-
-chemkit::MolecularDescriptor* GraphDescriptorsPlugin::createGraphDiameterDescriptor()
-{
-    return new GraphDiameterDescriptor;
-}
-
-chemkit::MolecularDescriptor* GraphDescriptorsPlugin::createGraphOrderDescriptor()
-{
-    return new GraphOrderDescriptor;
-}
-
-chemkit::MolecularDescriptor* GraphDescriptorsPlugin::createGraphRadiusDescriptor()
-{
-    return new GraphRadiusDescriptor;
-}
-
-chemkit::MolecularDescriptor* GraphDescriptorsPlugin::createGraphSizeDescriptor()
-{
-    return new GraphSizeDescriptor;
-}
+public:
+    GraphDescriptorsPlugin()
+        : chemkit::Plugin("graphdescriptors")
+    {
+        CHEMKIT_REGISTER_MOLECULAR_DESCRIPTOR("graph-density", GraphDensityDescriptor);
+        CHEMKIT_REGISTER_MOLECULAR_DESCRIPTOR("graph-diameter", GraphDiameterDescriptor);
+        CHEMKIT_REGISTER_MOLECULAR_DESCRIPTOR("graph-order", GraphOrderDescriptor);
+        CHEMKIT_REGISTER_MOLECULAR_DESCRIPTOR("graph-radius", GraphRadiusDescriptor);
+        CHEMKIT_REGISTER_MOLECULAR_DESCRIPTOR("graph-size", GraphSizeDescriptor);
+    }
+};
 
 CHEMKIT_EXPORT_PLUGIN(graphdescriptors, GraphDescriptorsPlugin)

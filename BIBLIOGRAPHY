@@ -2,12 +2,24 @@ Cordella et al., "A (Sub)Graph Isomorphism Algorithm for Matching Large
     Graphs." IEEE Transactions on Pattern Analysis and Machine Intelligence,
     2005. 26(10): 1367-1372
 
+Ertl et al., "Fast Calculation of Molecular Polar Surface Area as a Sum of
+    Fragment-Based Contributions and Its Application to the Prediction of
+    Drug Transport Properties." Journal of Medicinal Chemistry, 2000. 43:
+    3714-3717.
+
 Jorgensen et al. "Development and Testing of the OPLS All-Atom Force Field
     on Conformational Energetics and Properties of Organic Liquids." Jounal of
     the American Chemical Society, 1996. 118: 11225-11236.
 
 Lee et al., "A robust method for searching the smallest set of smallest rings 
     with a path-included distance matrix." PNAS, 2009. 106(41): 17355 - 17358
+
+Moriguchi et al., "Simple Method of Calculating Octanol/Water Partition
+    Coefficient." Chemical and Pharmaceutical Bulletin, 1992. 40(1): 127–130.
+
+Moriguchi et al., "Comparison of Reliability of log P Values for Drugs
+    Calculated by Several Methods." Chemical and Pharmaceutical Bulletin,
+    1994. 42(4), 976-978.
 
 Parsons et al, "Practical Conversion from Torsion Space to Cartesian Space for
     In Silico Protein Synthesis." Journal of Computational Chemistry, 2005.
@@ -24,3 +36,6 @@ Weininger, "SMILES, a Chemical Language and Information System. 1. Introduction
     to Methodology and Encoding Rules" Journal of Chemical Information and 
     Computer Sciences, 1988. 28: 31-36
 
+Zhao et al., "Fast Calculation of van der Waals Volume as a Sum of Atomic and
+    Bond Contributions and Its Application to Drug Compounds" Journal of
+    Organic Chemistry, 2003. 68(19): 7368–7373

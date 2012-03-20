@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2009-2011 Kyle Lutz <kyle.r.lutz@gmail.com>
+** Copyright (C) 2009-2012 Kyle Lutz <kyle.r.lutz@gmail.com>
 ** All rights reserved.
 **
 ** This file is a part of the chemkit project. For more information
@@ -33,24 +33,18 @@
 **
 ******************************************************************************/
 
-#include "massdescriptorsplugin.h"
+#include <chemkit/plugin.h>
 
 #include "massdescriptors.h"
 
-MassDescriptorsPlugin::MassDescriptorsPlugin()
-    : chemkit::Plugin("massdescriptors")
+class MassDescriptorsPlugin : public chemkit::Plugin
 {
-    registerPluginClass<chemkit::MolecularDescriptor>("molecular-mass", createMolecularMassDescriptor);
-}
-
-MassDescriptorsPlugin::~MassDescriptorsPlugin()
-{
-    unregisterPluginClass<chemkit::MolecularDescriptor>("molecular-mass");
-}
-
-chemkit::MolecularDescriptor* MassDescriptorsPlugin::createMolecularMassDescriptor()
-{
-    return new MolecularMassDescriptor;
-}
+public:
+    MassDescriptorsPlugin()
+        : chemkit::Plugin("massdescriptors")
+    {
+        CHEMKIT_REGISTER_MOLECULAR_DESCRIPTOR("molecular-mass", MolecularMassDescriptor);
+    }
+};
 
 CHEMKIT_EXPORT_PLUGIN(massdescriptors, MassDescriptorsPlugin)

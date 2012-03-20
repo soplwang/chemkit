@@ -51,16 +51,19 @@ class CHEMKIT_MD_EXPORT TrajectoryFrame
 {
 public:
     // properties
-    int size() const;
+    size_t size() const;
     bool isEmpty() const;
-    int index() const;
+    size_t index() const;
     Trajectory* trajectory() const;
 
+    // time
+    void setTime(Real time);
+    Real time() const;
+
     // coordinates
-    void setCoordinates(const CartesianCoordinates *coordinates);
+    void setPosition(size_t index, const Point3 &position);
+    Point3 position(size_t index) const;
     const CartesianCoordinates* coordinates() const;
-    void setPosition(int index, const Point3 &position);
-    Point3 position(int index) const;
 
     // unit cell
     void setUnitCell(UnitCell *cell);
@@ -68,8 +71,10 @@ public:
 
 private:
     // construction and destruction
-    TrajectoryFrame(Trajectory *trajectory);
+    TrajectoryFrame(Trajectory *trajectory, size_t size);
     ~TrajectoryFrame();
+
+    void resize(size_t size);
 
     friend class Trajectory;
 

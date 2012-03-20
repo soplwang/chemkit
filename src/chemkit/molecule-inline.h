@@ -38,6 +38,8 @@
 
 #include "molecule.h"
 
+#include <boost/foreach.hpp>
+
 namespace chemkit {
 
 // --- Properties ---------------------------------------------------------- //
@@ -55,6 +57,29 @@ inline bool Molecule::isEmpty() const
 }
 
 // --- Structure ----------------------------------------------------------- //
+/// Removes each atom from the molecule which for which \p predicate
+/// returns \c true.
+template<typename Predicate>
+inline void Molecule::removeAtomIf(Predicate predicate)
+{
+    std::vector<Atom *> atomsToRemove;
+
+    BOOST_FOREACH(Atom *atom, m_atoms){
+        if(predicate(atom)){
+            atomsToRemove.push_back(atom);
+        }
+    }
+
+    removeAtoms(atomsToRemove);
+}
+
+/// Removes each atom in \p range from the molecule.
+template<typename Range>
+inline void Molecule::removeAtoms(Range range)
+{
+    removeAtoms(std::vector<Atom *>(range.begin(), range.end()));
+}
+
 /// Returns a range containing all of the atoms in the molecule.
 inline Molecule::AtomRange Molecule::atoms() const
 {
@@ -71,6 +96,29 @@ inline size_t Molecule::atomCount() const
 inline Atom* Molecule::atom(size_t index) const
 {
     return m_atoms[index];
+}
+
+/// Removes each bond from the molecule for which \p predicate
+/// returns \c true.
+template<typename Predicate>
+inline void Molecule::removeBondIf(Predicate predicate)
+{
+    std::vector<Bond *> bondsToRemove;
+
+    BOOST_FOREACH(Bond *bond, bonds()){
+        if(predicate(bond)){
+            bondsToRemove.push_back(bond);
+        }
+    }
+
+    removeBonds(bondsToRemove);
+}
+
+/// Removes each bond in \p range from the molecule.
+template<typename Range>
+inline void Molecule::removeBonds(Range range)
+{
+    removeBonds(std::vector<Bond *>(range.begin(), range.end()));
 }
 
 } // end chemkit namespace

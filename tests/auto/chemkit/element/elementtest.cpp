@@ -45,7 +45,6 @@ void ElementTest::symbol()
     QCOMPARE(chemkit::Element(200).symbol(), std::string());
     QCOMPARE(chemkit::Element(-1).symbol(), std::string());
     QCOMPARE(chemkit::Element(109).symbol(), std::string("Mt"));
-    QCOMPARE(chemkit::Element(110).symbol(), std::string());
 }
 
 void ElementTest::name()
@@ -56,7 +55,6 @@ void ElementTest::name()
     QCOMPARE(chemkit::Element(200).name(), std::string());
     QCOMPARE(chemkit::Element(-1).name(), std::string());
     QCOMPARE(chemkit::Element(109).name(), std::string("Meitnerium"));
-    QCOMPARE(chemkit::Element(110).name(), std::string());
 }
 
 void ElementTest::atomicNumber()
@@ -117,6 +115,36 @@ void ElementTest::isMetal()
     QCOMPARE(chemkit::Element("Li").isNonmetal(), false);
 }
 
+void ElementTest::fromName()
+{
+    QCOMPARE(chemkit::Element::fromName("Hydrogen").atomicNumber(),
+             chemkit::Element::AtomicNumberType(1));
+    QCOMPARE(chemkit::Element::fromName("Carbon").atomicNumber(),
+             chemkit::Element::AtomicNumberType(6));
+    QCOMPARE(chemkit::Element::fromName("InvalidName").atomicNumber(),
+             chemkit::Element::AtomicNumberType(0));
+    QCOMPARE(chemkit::Element::fromName("").atomicNumber(),
+             chemkit::Element::AtomicNumberType(0));
+}
+
+void ElementTest::fromSymbol()
+{
+    QCOMPARE(chemkit::Element::fromSymbol("H").atomicNumber(),
+             chemkit::Element::AtomicNumberType(1));
+    QCOMPARE(chemkit::Element::fromSymbol("C").atomicNumber(),
+             chemkit::Element::AtomicNumberType(6));
+    QCOMPARE(chemkit::Element::fromSymbol("Invalid").atomicNumber(),
+             chemkit::Element::AtomicNumberType(0));
+    QCOMPARE(chemkit::Element::fromSymbol("").atomicNumber(),
+             chemkit::Element::AtomicNumberType(0));
+    QCOMPARE(chemkit::Element::fromSymbol('N').atomicNumber(),
+             chemkit::Element::AtomicNumberType(7));
+    QCOMPARE(chemkit::Element::fromSymbol("FeAtom", 2).atomicNumber(),
+             chemkit::Element::AtomicNumberType(26));
+    QCOMPARE(chemkit::Element::fromSymbol("S", 1).atomicNumber(),
+             chemkit::Element::AtomicNumberType(16));
+}
+
 void ElementTest::isValidAtomicNumber()
 {
     QCOMPARE(chemkit::Element::isValidAtomicNumber(1), true);
@@ -125,7 +153,6 @@ void ElementTest::isValidAtomicNumber()
     QCOMPARE(chemkit::Element::isValidAtomicNumber(200), false);
     QCOMPARE(chemkit::Element::isValidAtomicNumber(-1), false);
     QCOMPARE(chemkit::Element::isValidAtomicNumber(109), true);
-    QCOMPARE(chemkit::Element::isValidAtomicNumber(110), false);
 }
 
 void ElementTest::isValidSymbol()

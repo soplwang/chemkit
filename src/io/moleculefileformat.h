@@ -43,6 +43,7 @@
 #include <istream>
 #include <ostream>
 
+#include <chemkit/plugin.h>
 #include <chemkit/variant.h>
 
 namespace chemkit {
@@ -53,9 +54,6 @@ class MoleculeFileFormatPrivate;
 class CHEMKIT_IO_EXPORT MoleculeFileFormat
 {
 public:
-    // typedefs
-    typedef MoleculeFileFormat* (*CreateFunction)();
-
     // construction and destruction
     virtual ~MoleculeFileFormat();
 
@@ -80,11 +78,16 @@ public:
 protected:
     MoleculeFileFormat(const std::string &name);
     void setErrorString(const std::string &error);
+    virtual Variant defaultOption(const std::string &name) const;
 
 private:
     MoleculeFileFormatPrivate* const d;
 };
 
 } // end chemkit namespace
+
+/// Registers a molecule file format with \p name.
+#define CHEMKIT_REGISTER_MOLECULE_FILE_FORMAT(name, className) \
+    CHEMKIT_REGISTER_PLUGIN_CLASS(name, chemkit::MoleculeFileFormat, className)
 
 #endif // CHEMKIT_MOLECULEFILEFORMAT_H

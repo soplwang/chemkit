@@ -1,14 +1,4 @@
 # setup config.h
-# set a variable for the operating system
-if(UNIX)
-  set(CHEMKIT_OS_UNIX TRUE)
-  if(APPLE)
-    set(CHEMKIT_OS_MAC TRUE)
-  endif()
-elseif(WIN32)
-  set(CHEMKIT_OS_WIN32 TRUE)
-endif()
-
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
 find_package(Chemkit)
@@ -31,12 +21,14 @@ set(HEADERS
   chemkit.h
   config.h
   constants.h
+  coordinatepredictor.h
   coordinateset.h
   delaunaytriangulation.h
   diagramcoordinates.h
   dynamiclibrary.h
   element.h
   element-inline.h
+  fingerprint.h
   foreach.h
   fragment.h
   fragment-inline.h
@@ -71,9 +63,12 @@ set(HEADERS
   ring.h
   ring-inline.h
   scalarfield.h
+  similaritydescriptor.h
   stereochemistry.h
+  substructurequery.h
   unitcell.h
   variant.h
+  variantmap.h
   variant-inline.h
   vector2.h
   vector3.h
@@ -89,17 +84,18 @@ set(SOURCES
   bondpredictor.cpp
   cartesiancoordinates.cpp
   chemkit.cpp
+  coordinatepredictor.cpp
   coordinateset.cpp
   delaunaytriangulation.cpp
   diagramcoordinates.cpp
   dynamiclibrary.cpp
   element.cpp
+  fingerprint.cpp
   fragment.cpp
   geometry.cpp
   internalcoordinates.cpp
   isotope.cpp
   lineformat.cpp
-  matrix.cpp
   moiety.cpp
   moleculardescriptor.cpp
   molecularsurface.cpp
@@ -116,7 +112,9 @@ set(SOURCES
   residue.cpp
   ring.cpp
   scalarfield.cpp
+  similaritydescriptor.cpp
   stereochemistry.cpp
+  substructurequery.cpp
   unitcell.cpp
 )
 

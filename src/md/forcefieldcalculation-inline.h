@@ -53,22 +53,9 @@ inline Real ForceFieldCalculation::distance(const ForceFieldAtom *a, const Force
 }
 
 /// Returns the gradient of the distance between atoms \p a and \p b.
-inline std::vector<Vector3> ForceFieldCalculation::distanceGradient(const ForceFieldAtom *a, const ForceFieldAtom *b) const
+inline boost::array<Vector3, 2> ForceFieldCalculation::distanceGradient(const ForceFieldAtom *a, const ForceFieldAtom *b) const
 {
-    return distanceGradient(a->position(), b->position());
-}
-
-/// Returns the gradient of the distance between points \p a and \p b.
-inline std::vector<Vector3> ForceFieldCalculation::distanceGradient(const Point3 &a, const Point3 &b) const
-{
-    std::vector<Vector3> gradient(2);
-
-    Real distance = chemkit::geometry::distance(a, b);
-
-    gradient[0] = (a - b) / distance;
-    gradient[1] = -gradient[0];
-
-    return gradient;
+    return chemkit::geometry::distanceGradient(a->position(), b->position());
 }
 
 /// Returns the bond angle between atoms \p a, \p b and \p c. The
@@ -87,40 +74,16 @@ inline Real ForceFieldCalculation::bondAngleRadians(const ForceFieldAtom *a, con
 
 /// Returns the gradient of the bond angle between atoms \p a, \p b
 /// and \p c.
-inline std::vector<Vector3> ForceFieldCalculation::bondAngleGradient(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c) const
+inline boost::array<Vector3, 3> ForceFieldCalculation::bondAngleGradient(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c) const
 {
-    std::vector<Vector3> gradient = bondAngleGradientRadians(a, b, c);
-
-    for(unsigned int i = 0; i < gradient.size(); i++){
-        gradient[i] *= chemkit::constants::RadiansToDegrees;
-    }
-
-    return gradient;
+    return chemkit::geometry::angleGradient(a->position(), b->position(), c->position());
 }
 
 /// Returns the gradient of the bond angle between atoms \p a, \p b
 /// and \p c.
-inline std::vector<Vector3> ForceFieldCalculation::bondAngleGradientRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c) const
+inline boost::array<Vector3, 3> ForceFieldCalculation::bondAngleGradientRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c) const
 {
-    return bondAngleGradientRadians(a->position(), b->position(), c->position());
-}
-
-/// Returns the gradient of the bond angle between points \p a, \p b
-/// and \p c.
-inline std::vector<Vector3> ForceFieldCalculation::bondAngleGradientRadians(const Point3 &a, const Point3 &b, const Point3 &c) const
-{
-    std::vector<Vector3> gradient(3);
-
-    Real theta = chemkit::geometry::angleRadians(a, b, c);
-
-    Real rab = chemkit::geometry::distance(a, b);
-    Real rbc = chemkit::geometry::distance(b, c);
-
-    gradient[0] = ((((c - b) * rab) - (a - b) * ((b - a).dot(b - c) / rab)) / (pow(rab, 2) * rbc)) / -sin(theta);
-    gradient[1] = ((((b - c) + (b - a)) * (rab * rbc) - (((b - a) * (rbc/rab) + (b - c) * (rab/rbc)) * (b - a).dot(b - c))) / pow(rab * rbc, 2)) / -sin(theta);
-    gradient[2] = -gradient[0] - gradient[1];
-
-    return gradient;
+    return chemkit::geometry::angleGradientRadians(a->position(), b->position(), c->position());
 }
 
 /// Returns the torsion angle (also known as the dihedral angle)
@@ -141,50 +104,16 @@ inline Real ForceFieldCalculation::torsionAngleRadians(const ForceFieldAtom *a, 
 
 /// Returns the gradient of the torsion angle between the atoms \p a,
 /// \p b, \p c, and \p d.
-inline std::vector<Vector3> ForceFieldCalculation::torsionAngleGradient(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const
+inline boost::array<Vector3, 4> ForceFieldCalculation::torsionAngleGradient(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const
 {
-    std::vector<Vector3> gradient = torsionAngleGradientRadians(a, b, c, d);
-
-    for(unsigned int i = 0; i < gradient.size(); i++){
-        gradient[i] *= chemkit::constants::RadiansToDegrees;
-    }
-
-    return gradient;
+    return chemkit::geometry::torsionAngleGradient(a->position(), b->position(), c->position(), d->position());
 }
 
 /// Returns the gradient of the torsion angle between the atoms \p a,
 /// \p b, \p c, and \p d.
-inline std::vector<Vector3> ForceFieldCalculation::torsionAngleGradientRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const
+inline boost::array<Vector3, 4> ForceFieldCalculation::torsionAngleGradientRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const
 {
-    return torsionAngleGradientRadians(a->position(), b->position(), c->position(), d->position());
-}
-
-/// Returns the gradient of the torsion angle between the points
-/// \p a, \p b, \p c, and \p d.
-inline std::vector<Vector3> ForceFieldCalculation::torsionAngleGradientRadians(const Point3 &a, const Point3 &b, const Point3 &c, const Point3 &d) const
-{
-    std::vector<Vector3> gradient(4);
-
-    Real phi = chemkit::geometry::torsionAngleRadians(a, b, c, d);
-
-    Vector3 ab = b - a;
-    Vector3 ac = c - a;
-    Vector3 bd = d - b;
-    Vector3 cb = b - c;
-    Vector3 cd = d - c;
-
-    Vector3 m = ab.cross(cb);
-    Vector3 n = cb.cross(cd);
-
-    Vector3 p = ((n / (m.norm() * n.norm())) - ((m / m.squaredNorm()) * cos(phi)));
-    Vector3 q = ((m / (m.norm() * n.norm())) - ((n / n.squaredNorm()) * cos(phi)));
-
-    gradient[0] = cb.cross(p) * (1.0 / sin(phi));
-    gradient[1] = (ac.cross(p) - cd.cross(q)) * (1.0 / sin(phi));
-    gradient[2] = (bd.cross(q) - ab.cross(p)) * (1.0 / sin(phi));
-    gradient[3] = cb.cross(q) * (1.0 / sin(phi));
-
-    return gradient;
+    return chemkit::geometry::torsionAngleGradientRadians(a->position(), b->position(), c->position(), d->position());
 }
 
 /// Returns the wilson angle between the atoms \p a, \p b, \p c, and
@@ -203,52 +132,16 @@ inline Real ForceFieldCalculation::wilsonAngleRadians(const ForceFieldAtom *a, c
 
 /// Returns the gradient of the wilson angle between the atoms
 /// \p a, \p b, \p c, and \p d.
-inline std::vector<Vector3> ForceFieldCalculation::wilsonAngleGradient(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const
+inline boost::array<Vector3, 4> ForceFieldCalculation::wilsonAngleGradient(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const
 {
-    std::vector<Vector3> gradient = wilsonAngleGradientRadians(a, b, c, d);
-
-    for(unsigned int i = 0; i < gradient.size(); i++){
-        gradient[i] *= chemkit::constants::RadiansToDegrees;
-    }
-
-    return gradient;
+    return chemkit::geometry::wilsonAngleGradient(a->position(), b->position(), c->position(), d->position());
 }
 
 /// Returns the gradient of the wilson angle between the atoms
 /// \p a, \p b, \p c, and \p d.
-inline std::vector<Vector3> ForceFieldCalculation::wilsonAngleGradientRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const
+inline boost::array<Vector3, 4> ForceFieldCalculation::wilsonAngleGradientRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const
 {
-    return wilsonAngleGradientRadians(a->position(), b->position(), c->position(), d->position());
-}
-
-/// Returns the gradient of the wilson angle between the points
-/// \p a, \p b, \p c, and \p d.
-inline std::vector<Vector3> ForceFieldCalculation::wilsonAngleGradientRadians(const Point3 &a, const Point3 &b, const Point3 &c, const Point3 &d) const
-{
-    Vector3 ba = a - b;
-    Vector3 bc = c - b;
-    Vector3 bd = d - b;
-
-    Real rba = ba.norm();
-    Real rbc = bc.norm();
-    Real rbd = bd.norm();
-
-    ba.normalize();
-    bc.normalize();
-    bd.normalize();
-
-    Real theta = acos(ba.dot(bc));
-
-    Real w = chemkit::geometry::wilsonAngleRadians(a, b, c, d);
-
-    std::vector<Vector3> gradient(4);
-
-    gradient[0] = ((bd.cross(bc) / (cos(w) * sin(theta)) - (ba - bc * cos(theta)) * (tan(w) / pow(sin(theta), 2)))) / rba;
-    gradient[2] = ((ba.cross(bd) / (cos(w) * sin(theta)) - (bc - ba * cos(theta)) * (tan(w) / pow(sin(theta), 2)))) / rbc;
-    gradient[3] = (bc.cross(ba) / (cos(w) * sin(theta)) - bd * tan(w)) / rbd;
-    gradient[1] = -(gradient[0] + gradient[2] + gradient[3]);
-
-    return gradient;
+    return chemkit::geometry::wilsonAngleGradientRadians(a->position(), b->position(), c->position(), d->position());
 }
 
 } // end chemkit namespace

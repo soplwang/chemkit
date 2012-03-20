@@ -90,20 +90,15 @@ QUrl PubChem::url() const
 
 // --- Downloads ----------------------------------------------------------- //
 /// Downloads and returns the molecule with the compound ID \p id.
-/// If an error occurs \c 0 is returned.
-///
-/// The ownership of the returned molecule is passed to the caller.
-Molecule* PubChem::downloadMolecule(const QString &id) const
+/// If an error occurs a null pointer is returned.
+boost::shared_ptr<Molecule> PubChem::downloadMolecule(const QString &id) const
 {
     QScopedPointer<MoleculeFile> file(downloadFile(id));
     if(!file){
-        return 0;
+        return boost::shared_ptr<Molecule>();
     }
 
-    Molecule *molecule = file->molecule();
-    file->removeMolecule(molecule);
-
-    return molecule;
+    return file->molecule();
 }
 
 /// Downloads and returns the file with the compound ID \p id. If an
@@ -265,7 +260,8 @@ std::string PubChem::standardizeFormula(const std::string &formula, const std::s
 
     QDomNode node = nodes.at(0);
     QDomElement element = node.toElement();
-    std::string standardizedFormula = element.text().toStdString();
+    QByteArray elementText = element.text().toAscii();
+    std::string standardizedFormula = elementText.constData();
 
     return standardizedFormula;
 }
@@ -290,7 +286,7 @@ void PubChem::setErrorString(const QString &error)
     d->errorString = error;
 }
 
-/// Returns a string describing the last error that occured.
+/// Returns a string describing the last error that occurred.
 QString PubChem::errorString() const
 {
     return d->errorString;

@@ -53,7 +53,7 @@ PqrFileFormat::~PqrFileFormat()
 
 bool PqrFileFormat::read(std::istream &input, chemkit::MoleculeFile *file)
 {
-    chemkit::Molecule *molecule = new chemkit::Molecule;
+    boost::shared_ptr<chemkit::Molecule> molecule(new chemkit::Molecule);
 
     for(;;){
         std::string line;
@@ -79,7 +79,7 @@ bool PqrFileFormat::read(std::istream &input, chemkit::MoleculeFile *file)
             char symbol = lineTokens[2][0];
 
             // add atom
-            chemkit::Atom *atom = molecule->addAtom(chemkit::Element::atomicNumber(symbol));
+            chemkit::Atom *atom = molecule->addAtom(chemkit::Element::fromSymbol(symbol));
 
             // set coordinates
             atom->setPosition(boost::lexical_cast<chemkit::Real>(lineTokens[5]),

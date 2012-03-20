@@ -50,6 +50,7 @@ class TrajectoryFramePrivate
 {
 public:
     Trajectory *trajectory;
+    Real time;
     CartesianCoordinates *coordinates;
     UnitCell *unitCell;
 };
@@ -66,11 +67,12 @@ public:
 
 // --- Construction and Destruction ---------------------------------------- //
 /// Creates a new trajectory frame.
-TrajectoryFrame::TrajectoryFrame(Trajectory *trajectory)
+TrajectoryFrame::TrajectoryFrame(Trajectory *trajectory, size_t size)
     : d(new TrajectoryFramePrivate)
 {
     d->trajectory = trajectory;
-    d->coordinates = 0;
+    d->time = 0;
+    d->coordinates = new CartesianCoordinates(size);
     d->unitCell = 0;
 }
 
@@ -83,8 +85,14 @@ TrajectoryFrame::~TrajectoryFrame()
 }
 
 // --- Properties ---------------------------------------------------------- //
+/// Sets the number of coordinates in the frame to \p size.
+void TrajectoryFrame::resize(size_t size)
+{
+    d->coordinates->resize(size);
+}
+
 /// Returns the number of coordinates in the frame.
-int TrajectoryFrame::size() const
+size_t TrajectoryFrame::size() const
 {
     return d->coordinates->size();
 }
@@ -96,7 +104,7 @@ bool TrajectoryFrame::isEmpty() const
 }
 
 /// Returns the index of the frame in the trajectory.
-int TrajectoryFrame::index() const
+size_t TrajectoryFrame::index() const
 {
     const std::vector<TrajectoryFrame *> &frames = trajectory()->frames();
 
@@ -109,30 +117,36 @@ Trajectory* TrajectoryFrame::trajectory() const
     return d->trajectory;
 }
 
-// --- Coordinates --------------------------------------------------------- //
-/// Sets the coordinates for the frame to \p coordinates.
-void TrajectoryFrame::setCoordinates(const CartesianCoordinates *coordinates)
+// --- Time ---------------------------------------------------------------- //
+/// Sets the time for the trajectory frame to \p time.
+void TrajectoryFrame::setTime(Real time)
 {
-    delete d->coordinates;
-    d->coordinates = new CartesianCoordinates(*coordinates);
+    d->time = time;
+}
+
+/// Returns the time of the trajectory frame.
+Real TrajectoryFrame::time() const
+{
+    return d->time;
+}
+
+// --- Coordinates --------------------------------------------------------- //
+/// Sets the coordinates at \p index to \p position.
+void TrajectoryFrame::setPosition(size_t index, const Point3 &position)
+{
+    d->coordinates->setPosition(index, position);
+}
+
+/// Returns the position at \p index.
+Point3 TrajectoryFrame::position(size_t index) const
+{
+    return d->coordinates->position(index);
 }
 
 /// Returns the coordinates for the frame.
 const CartesianCoordinates* TrajectoryFrame::coordinates() const
 {
     return d->coordinates;
-}
-
-/// Sets the coordinates at \p index to \p position.
-void TrajectoryFrame::setPosition(int index, const Point3 &position)
-{
-    d->coordinates->setPosition(index, position);
-}
-
-/// Returns the position at \p index.
-Point3 TrajectoryFrame::position(int index) const
-{
-    return d->coordinates->position(index);
 }
 
 // --- Unit Cell ----------------------------------------------------------- //

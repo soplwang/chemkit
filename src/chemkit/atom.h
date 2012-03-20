@@ -95,12 +95,12 @@ public:
     Real covalentRadius() const;
     Real vanDerWaalsRadius() const;
     inline bool is(const Element &element) const;
-    bool isHeteroatom() const;
     inline Molecule* molecule() const;
     Fragment* fragment() const;
     inline size_t index() const;
 
     // structure
+    Bond* bond(size_t index) const;
     BondRange bonds() const;
     size_t bondCount() const;
     int valence() const;
@@ -117,6 +117,7 @@ public:
     bool isTerminalHydrogen() const;
 
     // ring perception
+    Ring* ring(size_t index) const;
     RingRange rings() const;
     size_t ringCount() const;
     bool isInRing() const;

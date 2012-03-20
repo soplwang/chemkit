@@ -42,4 +42,3 @@ void main()
 	color = gl_Color;
 	gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
 }
-

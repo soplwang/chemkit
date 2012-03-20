@@ -41,6 +41,7 @@
 #include <algorithm>
 
 #include <boost/scoped_ptr.hpp>
+#include <boost/make_shared.hpp>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -61,7 +62,8 @@
 #include "constants.h"
 #include "lineformat.h"
 #include "quaternion.h"
-#include "coordinateset.h"
+#include "variantmap.h"
+#include "fingerprint.h"
 #include "moleculeprivate.h"
 #include "moleculewatcher.h"
 #include "diagramcoordinates.h"
@@ -114,12 +116,6 @@ MoleculePrivate::MoleculePrivate()
 /// Fragment, and CoordinateSet objects that they contain. Deleting
 /// the molecule will also delete all of the objects that it contains.
 
-/// \enum Molecule::CompareFlag
-/// Option flags for molecule comparisons.
-///    - \c CompareAtomsOnly
-///    - \c CompareHydrogens
-///    - \c CompareAromaticity
-
 // --- Construction and Destruction ---------------------------------------- //
 /// Creates a new, empty molecule.
 Molecule::Molecule()
@@ -137,6 +133,9 @@ Molecule::Molecule()
 /// Molecule *benzene = new Molecule("InChI=1/C6H6/c1-2-4-6-5-3-1/h1-6H", "inchi");
 /// \endcode
 ///
+/// A list of supported formats is available at:
+/// http://wiki.chemkit.org/Features#Line_Formats
+///
 /// \see LineFormat
 Molecule::Molecule(const std::string &formula, const std::string &format)
     : d(new MoleculePrivate)
@@ -149,7 +148,12 @@ Molecule::Molecule(const std::string &formula, const std::string &format)
         return;
     }
 
-    lineFormat->read(formula, this);
+    boost::scoped_ptr<Molecule> molecule(lineFormat->read(formula));
+    if(!molecule){
+        return;
+    }
+
+    *this = *molecule;
 }
 
 /// Creates a new molecule that is a copy of \p molecule.
@@ -171,6 +175,10 @@ Molecule::Molecule(const Molecule &molecule)
     foreach(const Bond *bond, molecule.bonds()){
         Bond *newBond = addBond(oldToNew[bond->atom1()], oldToNew[bond->atom2()]);
         newBond->setOrder(bond->order());
+
+        if(bond->stereochemistry() != Stereochemistry::None){
+            newBond->setStereochemistry(bond->stereochemistry());
+        }
     }
 }
 
@@ -190,13 +198,11 @@ Molecule::~Molecule()
     // delete coordinates and all coordinate sets
     bool deletedCoordinates = false;
 
-    foreach(CoordinateSet *coordinateSet, d->coordinateSets){
+    foreach(const boost::shared_ptr<CoordinateSet> &coordinateSet, d->coordinateSets){
         if(coordinateSet->type() == CoordinateSet::Cartesian &&
            coordinateSet->cartesianCoordinates() == m_coordinates){
             deletedCoordinates = true;
         }
-
-        delete coordinateSet;
     }
 
     if(!deletedCoordinates){
@@ -213,7 +219,7 @@ Molecule::~Molecule()
 void Molecule::setName(const std::string &name)
 {
     d->name = name;
-    notifyWatchers(NameChanged);
+    notifyWatchers(MoleculeWatcher::NameChanged);
 }
 
 /// Returns the name of the molecule.
@@ -271,6 +277,9 @@ std::string Molecule::formula() const
 /// molecule->formula("inchi");
 /// \endcode
 ///
+/// A list of supported formats is available at:
+/// http://wiki.chemkit.org/Features#Line_Formats
+///
 /// \see LineFormat
 std::string Molecule::formula(const std::string &format) const
 {
@@ -291,6 +300,9 @@ std::string Molecule::formula(const std::string &format) const
 /// double randicIndex = molecule->descriptor("randic-index").toDouble();
 /// \endcode
 ///
+/// A list of supported molecular descriptors is available at:
+/// http://wiki.chemkit.org/Features#Molecular_Descriptors
+///
 /// \see MolecularDescriptor
 Variant Molecule::descriptor(const std::string &name) const
 {
@@ -300,6 +312,22 @@ Variant Molecule::descriptor(const std::string &name) const
     }
 
     return descriptor->value(this);
+}
+
+/// Returns the binary fingerprint for \p name.
+///
+/// A list of supported fingerprints is available at:
+/// http://wiki.chemkit.org/Features#Fingerprints
+///
+/// \see Fingerprint
+Bitset Molecule::fingerprint(const std::string &name) const
+{
+    boost::scoped_ptr<Fingerprint> fingerprint(Fingerprint::create(name));
+    if(!fingerprint){
+        return Bitset();
+    }
+
+    return fingerprint->value(this);
 }
 
 /// Returns the total molar mass of the molecule. Mass is in g/mol.
@@ -322,7 +350,7 @@ void Molecule::setData(const std::string &name, const Variant &value)
 /// Returns the data for the molecule with \p name.
 Variant Molecule::data(const std::string &name) const
 {
-    std::map<std::string, Variant>::const_iterator iter = d->data.find(name);
+    VariantMap::const_iterator iter = d->data.find(name);
     if(iter != d->data.end()){
         return iter->second;
     }
@@ -368,7 +396,7 @@ Atom* Molecule::addAtom(const Element &element)
     }
 
     setFragmentsPerceived(false);
-    notifyWatchers(atom, AtomAdded);
+    notifyWatchers(atom, MoleculeWatcher::AtomAdded);
 
     return atom;
 }
@@ -399,10 +427,7 @@ void Molecule::removeAtom(Atom *atom)
     }
 
     // remove all bonds to/from the atom first
-    std::vector<Bond *> bonds(atom->bonds().begin(), atom->bonds().end());
-    foreach(Bond *bond, bonds){
-        removeBond(bond);
-    }
+    removeBonds(atom->bonds());
 
     m_atoms.erase(std::remove(m_atoms.begin(), m_atoms.end(), atom), m_atoms.end());
 
@@ -422,9 +447,18 @@ void Molecule::removeAtom(Atom *atom)
     }
 
     atom->m_molecule = 0;
-    notifyWatchers(atom, AtomRemoved);
+    setFragmentsPerceived(false);
+    notifyWatchers(atom, MoleculeWatcher::AtomRemoved);
 
     delete atom;
+}
+
+/// Removes each atom in \p atoms from the molecule.
+void Molecule::removeAtoms(const std::vector<Atom *> &atoms)
+{
+    BOOST_REVERSE_FOREACH(Atom *atom, atoms){
+        removeAtom(atom);
+    }
 }
 
 /// Returns the number of atoms in the molecule of the given
@@ -432,6 +466,26 @@ void Molecule::removeAtom(Atom *atom)
 size_t Molecule::atomCount(const Element &element) const
 {
     return std::count(m_elements.begin(), m_elements.end(), element);
+}
+
+/// Requests that the atom capacity for the molecule be increased to
+/// \p capacity.
+///
+/// \internal
+void Molecule::setAtomCapacity(size_t capacity)
+{
+    m_atoms.reserve(capacity);
+    m_elements.reserve(capacity);
+    d->atomBonds.reserve(capacity);
+    d->partialCharges.reserve(capacity);
+}
+
+/// Returns the atom capacity for the molecule.
+///
+/// \internal
+size_t Molecule::atomCapacity() const
+{
+    return m_atoms.capacity();
 }
 
 /// Returns \c true if the molecule contains atom.
@@ -478,12 +532,12 @@ Bond* Molecule::addBond(Atom *a, Atom *b, int order)
     setRingsPerceived(false);
     setFragmentsPerceived(false);
 
-    notifyWatchers(bond, BondAdded);
+    notifyWatchers(bond, MoleculeWatcher::BondAdded);
 
     return bond;
 }
 
-/// Adds a new bond between atoms with indicies \p a and \p b.
+/// Adds a new bond between atoms with indices \p a and \p b.
 Bond* Molecule::addBond(size_t a, size_t b, int order)
 {
     return addBond(atom(a), atom(b), order);
@@ -515,7 +569,7 @@ void Molecule::removeBond(Bond *bond)
     setRingsPerceived(false);
     setFragmentsPerceived(false);
 
-    notifyWatchers(bond, BondRemoved);
+    notifyWatchers(bond, MoleculeWatcher::BondRemoved);
 
     delete bond;
 }
@@ -531,10 +585,18 @@ void Molecule::removeBond(Atom *a, Atom *b)
     }
 }
 
-/// Removes the bond between atoms with indicies \p a and \p b.
+/// Removes the bond between atoms with indices \p a and \p b.
 void Molecule::removeBond(size_t a, size_t b)
 {
     removeBond(bond(a, b));
+}
+
+/// Removes each bond in \p bonds from the molecule.
+void Molecule::removeBonds(const std::vector<Bond *> &bonds)
+{
+    BOOST_REVERSE_FOREACH(Bond *bond, bonds){
+        removeBond(bond);
+    }
 }
 
 /// Returns a range containing all of the bonds in the molecule.
@@ -564,10 +626,29 @@ Bond* Molecule::bond(const Atom *a, const Atom *b) const
     return a->bondTo(b);
 }
 
-/// Returns the bond between the atoms with indicies \p a and \p b.
+/// Returns the bond between the atoms with indices \p a and \p b.
 Bond* Molecule::bond(size_t a, size_t b) const
 {
     return bond(atom(a), atom(b));
+}
+
+/// Requests that the bond capacity for the molecule be increased to
+/// \p capacity.
+///
+/// \internal
+void Molecule::setBondCapacity(size_t capacity)
+{
+    d->bonds.reserve(capacity);
+    d->bondOrders.reserve(capacity);
+    d->bondAtoms.reserve(capacity);
+}
+
+/// Returns the bond capacity for the molecule.
+///
+/// \internal
+size_t Molecule::bondCapacity() const
+{
+    return d->bonds.capacity();
 }
 
 /// Returns \c true if the molecule contains bond.
@@ -579,234 +660,8 @@ bool Molecule::contains(const Bond *bond) const
 /// Removes all atoms and bonds from the molecule.
 void Molecule::clear()
 {
-    std::vector<Bond *> bonds = d->bonds;
-    foreach(Bond *bond, bonds){
-        removeBond(bond);
-    }
-
-    std::vector<Atom *> atoms = m_atoms;
-    foreach(Atom *atom, atoms){
-        removeAtom(atom);
-    }
-}
-
-// --- Comparison ---------------------------------------------------------- //
-/// Returns \c true if the molecule equals \p molecule.
-bool Molecule::equals(const Molecule *molecule, int flags) const
-{
-    return contains(molecule, flags) && molecule->contains(this, flags);
-}
-
-/// Returns \c true if the molecule contains \p molecule as a
-/// substructure.
-///
-/// For example, this method could be used to create a function that
-/// checks if a molecule contains a carboxyl group (-COO):
-/// \code
-/// bool containsCarboxylGroup(const Molecule *molecule)
-/// {
-///      Molecule carboxyl;
-///      Atom *C1 = carboxyl.addAtom("C");
-///      Atom *O2 = carboxyl.addAtom("O");
-///      Atom *O3 = carboxyl.addAtom("O");
-///      carboxyl.addBond(C1, O2, Bond::Double);
-///      carboxyl.addBond(C1, O3, Bond::Single);
-///
-///      return molecule->contains(&carboxyl);
-/// }
-/// \endcode
-bool Molecule::contains(const Molecule *molecule, int flags) const
-{
-    if(molecule == this){
-        return true;
-    }
-
-    if(isEmpty() && molecule->isEmpty()){
-        return true;
-    }
-    else if((flags & CompareAtomsOnly) || (bondCount() == 0 && molecule->bondCount() == 0)){
-        return molecule->isSubsetOf(this, flags);
-    }
-
-    return !molecule->mapping(this, flags).empty();
-}
-
-/// Returns \c true if the molecule is a substructure of \p molecule.
-bool Molecule::isSubstructureOf(const Molecule *molecule, int flags) const
-{
-    return molecule->contains(this, flags);
-}
-
-namespace {
-
-struct AtomComparator
-{
-    AtomComparator(const std::vector<Atom *> &sourceAtoms, const std::vector<Atom *> &targetAtoms)
-        : m_sourceAtoms(sourceAtoms),
-          m_targetAtoms(targetAtoms)
-    {
-    }
-
-    AtomComparator(const AtomComparator &other)
-        : m_sourceAtoms(other.m_sourceAtoms),
-          m_targetAtoms(other.m_targetAtoms)
-    {
-    }
-
-    bool operator()(size_t a, size_t b) const
-    {
-        return m_sourceAtoms[a]->atomicNumber() == m_targetAtoms[b]->atomicNumber();
-    }
-
-    const std::vector<Atom *> &m_sourceAtoms;
-    const std::vector<Atom *> &m_targetAtoms;
-};
-
-struct BondComparator
-{
-    BondComparator(const std::vector<Atom *> &sourceAtoms, const std::vector<Atom *> &targetAtoms, int flags)
-        : m_sourceAtoms(sourceAtoms),
-          m_targetAtoms(targetAtoms),
-          m_flags(flags)
-    {
-    }
-
-    BondComparator(const BondComparator &other)
-        : m_sourceAtoms(other.m_sourceAtoms),
-          m_targetAtoms(other.m_targetAtoms),
-          m_flags(other.m_flags)
-    {
-    }
-
-    bool operator()(size_t a1, size_t a2, size_t b1, size_t b2) const
-    {
-        const Bond *bondA = m_sourceAtoms[a1]->bondTo(m_sourceAtoms[a2]);
-        const Bond *bondB = m_targetAtoms[b1]->bondTo(m_targetAtoms[b2]);
-
-        if(!bondA || !bondB){
-            return false;
-        }
-
-        if(m_flags & Molecule::CompareAromaticity){
-            return (bondA->order() == bondB->order()) ||
-                   (bondA->isAromatic() && bondB->isAromatic());
-        }
-        else{
-            return bondA->order() == bondB->order();
-        }
-    }
-
-    const std::vector<Atom *> &m_sourceAtoms;
-    const std::vector<Atom *> &m_targetAtoms;
-    int m_flags;
-};
-
-} // end anonymous namespace
-
-/// Returns a mapping (also known as an isomorphism) between the atoms
-/// in the molecule and the atoms in \p molecule.
-std::map<Atom *, Atom *> Molecule::mapping(const Molecule *molecule, int flags) const
-{
-    Graph<size_t> source;
-    Graph<size_t> target;
-
-    std::vector<Atom *> sourceAtoms;
-    std::vector<Atom *> targetAtoms;
-
-    if(flags & CompareHydrogens){
-        source.resize(this->size());
-        foreach(const Bond *bond, this->bonds()){
-            source.addEdge(bond->atom1()->index(), bond->atom2()->index());
-        }
-        sourceAtoms = m_atoms;
-
-        target.resize(molecule->size());
-        foreach(const Bond *bond, molecule->bonds()){
-            target.addEdge(bond->atom1()->index(), bond->atom2()->index());
-        }
-        targetAtoms = std::vector<Atom *>(molecule->atoms().begin(), molecule->atoms().end());
-    }
-    else{
-        foreach(Atom *atom, m_atoms){
-            if(!atom->isTerminalHydrogen()){
-                sourceAtoms.push_back(atom);
-            }
-        }
-
-        foreach(Atom *atom, molecule->atoms()){
-            if(!atom->isTerminalHydrogen()){
-                targetAtoms.push_back(atom);
-            }
-        }
-
-        source.resize(sourceAtoms.size());
-        target.resize(targetAtoms.size());
-
-        for(size_t i = 0; i < sourceAtoms.size(); i++){
-            for(size_t j = i + 1; j < sourceAtoms.size(); j++){
-                if(sourceAtoms[i]->isBondedTo(sourceAtoms[j])){
-                    source.addEdge(i, j);
-                }
-            }
-        }
-
-        for(size_t i = 0; i < targetAtoms.size(); i++){
-            for(size_t j = i + 1; j < targetAtoms.size(); j++){
-                if(targetAtoms[i]->isBondedTo(targetAtoms[j])){
-                    target.addEdge(i, j);
-                }
-            }
-        }
-    }
-
-    AtomComparator atomComparator(sourceAtoms, targetAtoms);
-    BondComparator bondComparator(sourceAtoms, targetAtoms, flags);
-
-    // run vf2 isomorphism algorithm
-    std::map<size_t, size_t> mapping = chemkit::algorithm::vf2(source,
-                                                               target,
-                                                               atomComparator,
-                                                               bondComparator);
-
-    // convert index mapping to an atom mapping
-    std::map<Atom *, Atom *> atomMapping;
-
-    for(std::map<size_t, size_t>::iterator i = mapping.begin(); i != mapping.end(); ++i){
-        atomMapping[sourceAtoms[i->first]] = targetAtoms[i->second];
-    }
-
-    return atomMapping;
-}
-
-/// Searches the molecule for an occurrence of \p moiety and returns
-/// it if found. If not found an empty moiety is returned.
-///
-/// For example, to find an amide group (NC=O) in the molecule:
-/// \code
-/// Molecule amide;
-/// Atom *C1 = amide.addAtom("C");
-/// Atom *N2 = amide.addAtom("N");
-/// Atom *O3 = amide.addAtom("O");
-/// amide.addBond(C1, N2, Bond::Single);
-/// amide.addBond(C1, O3, Bond::Double);
-///
-/// Moiety amideGroup = molecule.find(&amide);
-/// \endcode
-Moiety Molecule::find(const Molecule *moiety, int flags) const
-{
-    std::map<Atom *, Atom *> mapping = moiety->mapping(this, flags);
-
-    // no mapping found, return empty moiety
-    if(mapping.empty()){
-        return Moiety();
-    }
-
-    std::vector<Atom *> moietyAtoms;
-    foreach(Atom *atom, moiety->atoms()){
-        moietyAtoms.push_back(const_cast<Atom *>(mapping[atom]));
-    }
-
-    return Moiety(moietyAtoms);
+    removeBonds(d->bonds);
+    removeAtoms(m_atoms);
 }
 
 // --- Ring Perception ----------------------------------------------------- //
@@ -823,6 +678,9 @@ Ring* Molecule::ring(size_t index) const
 
 /// Returns a range containing all of the rings in the molecule.
 ///
+/// This method implements the
+/// \blueobeliskalgorithm{findSmallestSetOfSmallestRings}.
+///
 /// \warning The range of rings returned from this method is only
 ///          valid as long as the molecule's structure remains
 ///          unchanged. If any atoms or bonds in the molecule are
@@ -830,7 +688,7 @@ Ring* Molecule::ring(size_t index) const
 ///          this method must be called again.
 Molecule::RingRange Molecule::rings() const
 {
-    // only run ring perception if neccessary
+    // only run ring perception if necessary
     if(!ringsPerceived()){
         // find rings
         foreach(const std::vector<Atom *> &ring, chemkit::algorithm::rppath(this)){
@@ -920,9 +778,7 @@ bool Molecule::isFragmented() const
 /// the molecule.
 void Molecule::removeFragment(Fragment *fragment)
 {
-    foreach(Atom *atom, fragment->atoms()){
-        removeAtom(atom);
-    }
+    removeAtoms(fragment->atoms());
 }
 
 Fragment* Molecule::fragment(const Atom *atom) const
@@ -1017,10 +873,10 @@ CartesianCoordinates* Molecule::coordinates() const
            d->coordinateSets.front()->type() == CoordinateSet::None){
             // create a new, empty cartesian coordinate set
             m_coordinates = new CartesianCoordinates(atomCount());
-            d->coordinateSets.push_back(new CoordinateSet(m_coordinates));
+            d->coordinateSets.push_back(boost::make_shared<CoordinateSet>(m_coordinates));
         }
         else{
-            CoordinateSet *coordinateSet = d->coordinateSets.front();
+            const boost::shared_ptr<CoordinateSet> &coordinateSet = d->coordinateSets.front();
 
             switch(coordinateSet->type()){
                 case CoordinateSet::Cartesian:
@@ -1041,9 +897,8 @@ CartesianCoordinates* Molecule::coordinates() const
     return m_coordinates;
 }
 
-/// Add \p coordinates to the molecule. The ownership of
-/// \p coordinates is passed to the molecule.
-void Molecule::addCoordinateSet(CoordinateSet *coordinates)
+/// Add \p coordinates to the molecule.
+void Molecule::addCoordinateSet(const boost::shared_ptr<CoordinateSet> &coordinates)
 {
     d->coordinateSets.push_back(coordinates);
 }
@@ -1051,29 +906,30 @@ void Molecule::addCoordinateSet(CoordinateSet *coordinates)
 /// Add a new coordinate set containing \p coordinates.
 void Molecule::addCoordinateSet(CartesianCoordinates *coordinates)
 {
-    addCoordinateSet(new CoordinateSet(coordinates));
+    addCoordinateSet(boost::make_shared<CoordinateSet>(coordinates));
 }
 
 /// Add a new coordinate set containing \p coordinates.
 void Molecule::addCoordinateSet(InternalCoordinates *coordinates)
 {
-    addCoordinateSet(new CoordinateSet(coordinates));
+    addCoordinateSet(boost::make_shared<CoordinateSet>(coordinates));
 }
 
 /// Add a new coordinate set containing \p coordinates.
 void Molecule::addCoordinateSet(DiagramCoordinates *coordinates)
 {
-    addCoordinateSet(new CoordinateSet(coordinates));
+    addCoordinateSet(boost::make_shared<CoordinateSet>(coordinates));
 }
 
 /// Removes \p coordinates from the molecule. Returns \c true if
-/// successful. The ownership of \p coordinates is passed to the
-/// caller.
-bool Molecule::removeCoordinateSet(CoordinateSet *coordinates)
+/// successful.
+bool Molecule::removeCoordinateSet(const boost::shared_ptr<CoordinateSet> &coordinates)
 {
-    std::vector<CoordinateSet *>::iterator iter = std::find(d->coordinateSets.begin(),
-                                                            d->coordinateSets.end(),
-                                                            coordinates);
+    typedef std::vector<boost::shared_ptr<CoordinateSet> >::iterator CoordinateSetIterator;
+    CoordinateSetIterator iter = std::find(d->coordinateSets.begin(),
+                                           d->coordinateSets.end(),
+                                           coordinates);
+
     if(iter != d->coordinateSets.end()){
         d->coordinateSets.erase(iter);
         return true;
@@ -1082,30 +938,31 @@ bool Molecule::removeCoordinateSet(CoordinateSet *coordinates)
     return false;
 }
 
-/// Removes and deletes \p coordinates if they are contained in the
-/// molecule. Returns \c true if successful.
-bool Molecule::deleteCoordinateSet(CoordinateSet *coordinates)
-{
-    bool found = removeCoordinateSet(coordinates);
-
-    if(found){
-        delete coordinates;
-    }
-
-    return found;
-}
-
 /// Returns the coordinate set at \p index in the molecule.
 ///
 /// Equivalent to:
 /// \code
 /// molecule.coordinateSets()[index];
 /// \endcode
-CoordinateSet* Molecule::coordinateSet(size_t index) const
+boost::shared_ptr<CoordinateSet> Molecule::coordinateSet(size_t index) const
 {
     assert(index < d->coordinateSets.size());
 
     return d->coordinateSets[index];
+}
+
+/// Returns the first coordinate set in the molecule of the given
+/// \p type. Returns null if the molecule contains no coordinate
+/// sets of the given \p type.
+boost::shared_ptr<CoordinateSet> Molecule::coordinateSet(CoordinateSet::Type type) const
+{
+    foreach(const boost::shared_ptr<CoordinateSet> &coordinates, d->coordinateSets){
+        if(coordinates->type() == type){
+            return coordinates;
+        }
+    }
+
+    return boost::shared_ptr<CoordinateSet>();
 }
 
 /// Returns a range containing all of the coordinate sets that the
@@ -1187,6 +1044,8 @@ Point3 Molecule::center() const
 }
 
 /// Returns the center of mass for the molecule.
+///
+/// This method implements the \blueobeliskalgorithm{calculate3DCenterOfMass}.
 Point3 Molecule::centerOfMass() const
 {
     if(!m_coordinates){
@@ -1261,28 +1120,43 @@ Molecule& Molecule::operator=(const Molecule &molecule)
         foreach(const Bond *bond, molecule.bonds()){
             Bond *newBond = addBond(oldToNew[bond->atom1()], oldToNew[bond->atom2()]);
             newBond->setOrder(bond->order());
+
+            if(bond->stereochemistry() != Stereochemistry::None){
+                newBond->setStereochemistry(bond->stereochemistry());
+            }
         }
     }
 
     return *this;
 }
 
+/// Returns the atom at \p index in the molecule.
+///
+/// Equivalent to:
+/// \code
+/// molecule.atom(index);
+/// \endcode
+Atom* Molecule::operator[](size_t index) const
+{
+    return atom(index);
+}
+
 // --- Internal Methods ---------------------------------------------------- //
-void Molecule::notifyWatchers(ChangeType type)
+void Molecule::notifyWatchers(MoleculeWatcher::ChangeType type)
 {
     foreach(MoleculeWatcher *watcher, d->watchers){
         watcher->moleculeChanged(this, type);
     }
 }
 
-void Molecule::notifyWatchers(const Atom *atom, ChangeType type)
+void Molecule::notifyWatchers(const Atom *atom, MoleculeWatcher::ChangeType type)
 {
     foreach(MoleculeWatcher *watcher, d->watchers){
         watcher->atomChanged(atom, type);
     }
 }
 
-void Molecule::notifyWatchers(const Bond *bond, ChangeType type)
+void Molecule::notifyWatchers(const Bond *bond, MoleculeWatcher::ChangeType type)
 {
     foreach(MoleculeWatcher *watcher, d->watchers){
         watcher->bondChanged(bond, type);
@@ -1297,31 +1171,6 @@ void Molecule::addWatcher(MoleculeWatcher *watcher) const
 void Molecule::removeWatcher(MoleculeWatcher *watcher) const
 {
     d->watchers.erase(std::remove(d->watchers.begin(), d->watchers.end(), watcher));
-}
-
-bool Molecule::isSubsetOf(const Molecule *molecule, int flags) const
-{
-    CHEMKIT_UNUSED(flags);
-
-    std::vector<Atom *> otherAtoms(molecule->atoms().begin(), molecule->atoms().end());
-
-    foreach(const Atom *atom, m_atoms){
-        bool found = false;
-
-        foreach(Atom *otherAtom, otherAtoms){
-            if(atom->atomicNumber() == otherAtom->atomicNumber()){
-                otherAtoms.erase(std::remove(otherAtoms.begin(), otherAtoms.end(), otherAtom), otherAtoms.end());
-                found = true;
-                break;
-            }
-        }
-
-        if(!found){
-            return false;
-        }
-    }
-
-    return true;
 }
 
 Stereochemistry* Molecule::stereochemistry()

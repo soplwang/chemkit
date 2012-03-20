@@ -49,6 +49,10 @@ namespace constants {
 /// to its diameter.
 const Real Pi = 3.14159265358979323846264338327;
 
+/// Tau (\f$\tau\f$). Twice the number pi (\f$2\pi\f$). The ratio
+/// of the circumference of a circle to its radius.
+const Real Tau = 2.0 * Pi;
+
 /// Conversion factor from degrees to radians.
 ///
 /// Equal to \f$\frac{\pi}{180}\f$.
@@ -117,6 +121,9 @@ const Real VacuumPermittivity = 1.0 / (VacuumPermeability * SpeedOfLight * Speed
 ///
 /// Equal to \f$\frac{e^{2} c \epsilon_{0}}{2 h}\f$.
 const Real FineStructureConstant = (ElementaryCharge * ElementaryCharge * SpeedOfLight * VacuumPermittivity) / (2.0 * PlanckConstant);
+
+/// Conversion factor between Bohr units and Angstroms.
+const Real BohrToAnstroms = 0.52918;
 
 } // end constants namespace
 

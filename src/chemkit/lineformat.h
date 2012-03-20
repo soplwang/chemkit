@@ -41,6 +41,7 @@
 #include <string>
 #include <vector>
 
+#include "plugin.h"
 #include "variant.h"
 
 namespace chemkit {
@@ -51,9 +52,6 @@ class LineFormatPrivate;
 class CHEMKIT_EXPORT LineFormat
 {
 public:
-    // typedefs
-    typedef LineFormat* (*CreateFunction)();
-
     // construction and destruction
     virtual ~LineFormat();
 
@@ -65,8 +63,7 @@ public:
     Variant option(const std::string &name) const;
 
     // input and output
-    virtual bool read(const std::string &formula, Molecule *molecule);
-    Molecule* read(const std::string &formula);
+    virtual Molecule* read(const std::string &formula);
     virtual std::string write(const Molecule *molecule);
 
     // error handling
@@ -89,5 +86,9 @@ private:
 };
 
 } // end chemkit namespace
+
+/// Registers a line format with \p name.
+#define CHEMKIT_REGISTER_LINE_FORMAT(name, className) \
+    CHEMKIT_REGISTER_PLUGIN_CLASS(name, chemkit::LineFormat, className)
 
 #endif // CHEMKIT_LINEFORMAT_H

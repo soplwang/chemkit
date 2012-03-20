@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2009-2011 Kyle Lutz <kyle.r.lutz@gmail.com>
+** Copyright (C) 2009-2012 Kyle Lutz <kyle.r.lutz@gmail.com>
 ** All rights reserved.
 **
 ** This file is a part of the chemkit project. For more information
@@ -33,41 +33,28 @@
 **
 ******************************************************************************/
 
-#include "amberplugin.h"
-
+#include <chemkit/plugin.h>
+#include <chemkit/moleculardescriptor.h>
 #include <chemkit/forcefieldenergydescriptor.h>
 
 #include "amberatomtyper.h"
 #include "amberforcefield.h"
 
-AmberPlugin::AmberPlugin()
-    : chemkit::Plugin("amber")
+class AmberPlugin : public chemkit::Plugin
 {
-    registerPluginClass<chemkit::ForceField>("amber", createAmberForceField);
-    registerPluginClass<chemkit::AtomTyper>("amber", createAmberAtomTyper);
-    registerPluginClass<chemkit::MolecularDescriptor>("amber-energy", createAmberEnergyDescriptor);
-}
+public:
+    AmberPlugin()
+        : chemkit::Plugin("amber")
+    {
+        CHEMKIT_REGISTER_ATOM_TYPER("amber", AmberAtomTyper);
+        CHEMKIT_REGISTER_FORCE_FIELD("amber", AmberForceField);
+        registerPluginClass<chemkit::MolecularDescriptor>("amber-energy", createAmberEnergyDescriptor);
+    }
 
-AmberPlugin::~AmberPlugin()
-{
-    unregisterPluginClass<chemkit::ForceField>("amber");
-    unregisterPluginClass<chemkit::AtomTyper>("amber");
-    unregisterPluginClass<chemkit::MolecularDescriptor>("amber-energy");
-}
-
-chemkit::ForceField* AmberPlugin::createAmberForceField()
-{
-    return new AmberForceField;
-}
-
-chemkit::AtomTyper* AmberPlugin::createAmberAtomTyper()
-{
-    return new AmberAtomTyper;
-}
-
-chemkit::MolecularDescriptor* AmberPlugin::createAmberEnergyDescriptor()
-{
-    return new chemkit::ForceFieldEnergyDescriptor<AmberForceField>("amber-energy");
-}
+    static chemkit::MolecularDescriptor* createAmberEnergyDescriptor()
+    {
+        return new chemkit::ForceFieldEnergyDescriptor<AmberForceField>("amber-energy");
+    }
+};
 
 CHEMKIT_EXPORT_PLUGIN(amber, AmberPlugin)

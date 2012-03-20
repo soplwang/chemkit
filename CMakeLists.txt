@@ -10,6 +10,7 @@ set(CMAKE_MODULE_PATH ${Chemkit_SOURCE_DIR}/cmake)
 # find dependencies
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED)
+link_directories(${Boost_LIBRARY_DIRS})
 
 # add option for CMAKE_BUILD_TYPE
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -27,6 +28,8 @@ configure_file(
 
 add_custom_target(uninstall 
 	COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+
+set(CHEMKIT_IN_BUILD_TREE TRUE)
 
 # configure and install ChemkitConfig.cmake file
 configure_file(
@@ -48,14 +51,31 @@ export(PACKAGE Chemkit)
 option(CHEMKIT_WITH_GRAPHICS "Build the chemkit-graphics library." ON)
 option(CHEMKIT_WITH_IO "Build the chemkit-io library." ON)
 option(CHEMKIT_WITH_MD "Build the chemkit-md library." ON)
+option(CHEMKIT_WITH_MD_IO "Build the chemkit-md-io library." ON)
 option(CHEMKIT_WITH_WEB "Build the chemkit-web library." ON)
-option(CHEMKIT_WITH_WIDGETS "Build the chemkit-widgets library." ON)
+option(CHEMKIT_WITH_GUI "Build the chemkit-gui library." ON)
 option(CHEMKIT_BUILD_APPS "Build the chemkit applications" ON)
 option(CHEMKIT_BUILD_QT_DESIGNER_PLUGINS "Build the chemkit QtDesigner plugins." OFF)
+option(CHEMKIT_BUILD_DEMOS "Build the chemkit demos." OFF)
 option(CHEMKIT_BUILD_EXAMPLES "Build the chemkit examples." OFF)
 option(CHEMKIT_BUILD_TESTS "Build the chemkit tests." OFF)
 
+# compiler options
+if(MSVC)
+  # disable dll-linkage warnings from MSVC
+  add_definitions("/wd4251")
+
+  # disable boost auto-linking
+  add_definitions("-DBOOST_ALL_NO_LIB")
+  add_definitions("-DBOOST_ALL_DYN_LINK")
+
+  # disable unsafe string function warnings
+  add_definitions("-D_CRT_SECURE_NO_WARNINGS")
+endif()
+
 add_subdirectory(src)
+add_subdirectory(bindings)
+add_subdirectory(demos)
 add_subdirectory(examples)
 
 enable_testing()

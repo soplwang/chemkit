@@ -35,7 +35,7 @@
 
 #include "mopactest.h"
 
-#include <algorithm>
+#include <boost/range/algorithm.hpp>
 
 #include <chemkit/molecule.h>
 #include <chemkit/moleculefile.h>
@@ -45,9 +45,9 @@ const std::string dataPath = "../../../data/";
 
 void MopacTest::initTestCase()
 {
-    std::vector<std::string> formats = chemkit::MoleculeFileFormat::formats();
-    QVERIFY(std::find(formats.begin(), formats.end(), "mopin") != formats.end());
-    QVERIFY(std::find(formats.begin(), formats.end(), "mopcrt") != formats.end());
+    // verify that the mopac plugin registered itself correctly
+    QVERIFY(boost::count(chemkit::MoleculeFileFormat::formats(), "mopin") == 1);
+    QVERIFY(boost::count(chemkit::MoleculeFileFormat::formats(), "mopcrt") == 1);
 }
 
 void MopacTest::ethanol()
@@ -57,9 +57,9 @@ void MopacTest::ethanol()
     if(!ok)
         qDebug() << file.errorString().c_str();
     QVERIFY(ok);
-    QCOMPARE(file.moleculeCount(), 1);
+    QCOMPARE(file.moleculeCount(), size_t(1));
 
-    const chemkit::Molecule *molecule = file.molecule(0);
+    const boost::shared_ptr<chemkit::Molecule> molecule = file.molecule();
     QCOMPARE(molecule->formula(), std::string("C2H6O"));
 }
 
@@ -70,9 +70,9 @@ void MopacTest::guanine()
     if(!ok)
         qDebug() << file.errorString().c_str();
     QVERIFY(ok);
-    QCOMPARE(file.moleculeCount(), 1);
+    QCOMPARE(file.moleculeCount(), size_t(1));
 
-    const chemkit::Molecule *molecule = file.molecule(0);
+    const boost::shared_ptr<chemkit::Molecule> molecule = file.molecule();
     QCOMPARE(molecule->formula(), std::string("C5H5N5O"));
 }
 

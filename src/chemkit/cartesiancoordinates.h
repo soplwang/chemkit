@@ -39,7 +39,8 @@
 #include "chemkit.h"
 
 #include <vector>
-#include <cstddef>
+
+#include <boost/array.hpp>
 
 #include "matrix.h"
 #include "point3.h"
@@ -53,7 +54,6 @@ public:
     // construction and destruction
     CartesianCoordinates();
     CartesianCoordinates(size_t size);
-    CartesianCoordinates(const std::vector<Point3> &points);
     CartesianCoordinates(const CartesianCoordinates &coordinates);
     ~CartesianCoordinates();
 
@@ -88,6 +88,15 @@ public:
     void moveBy(const Vector3 &vector);
     void moveBy(Real x, Real y, Real z);
     Matrix distanceMatrix() const;
+
+    // derivatives
+    boost::array<Vector3, 2> distanceGradient(size_t i, size_t j) const;
+    boost::array<Vector3, 3> angleGradient(size_t i, size_t j, size_t k) const;
+    boost::array<Vector3, 3> angleGradientRadians(size_t i, size_t j, size_t k) const;
+    boost::array<Vector3, 4> torsionAngleGradient(size_t i, size_t j, size_t k, size_t l) const;
+    boost::array<Vector3, 4> torsionAngleGradientRadians(size_t i, size_t j, size_t k, size_t l) const;
+    boost::array<Vector3, 4> wilsonAngleGradient(size_t i, size_t j, size_t k, size_t l) const;
+    boost::array<Vector3, 4> wilsonAngleGradientRadians(size_t i, size_t j, size_t k, size_t l) const;
 
     // math
     CartesianCoordinates add(const CartesianCoordinates &coordinates) const;

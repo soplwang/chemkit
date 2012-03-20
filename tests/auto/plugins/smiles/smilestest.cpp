@@ -35,7 +35,7 @@
 
 #include "smilestest.h"
 
-#include <algorithm>
+#include <boost/range/algorithm.hpp>
 
 #include <chemkit/atom.h>
 #include <chemkit/ring.h>
@@ -43,27 +43,27 @@
 #include <chemkit/lineformat.h>
 #include <chemkit/moleculefile.h>
 #include <chemkit/aromaticitymodel.h>
+#include <chemkit/substructurequery.h>
 #include <chemkit/moleculefileformat.h>
 
 const std::string dataPath = "../../../data/";
 
 void SmilesTest::initTestCase()
 {
-    std::vector<std::string> lineFormats = chemkit::LineFormat::formats();
-    QVERIFY(std::find(lineFormats.begin(), lineFormats.end(), "smiles") != lineFormats.end());
-
-    std::vector<std::string> aromaticityModels = chemkit::AromaticityModel::models();
-    QVERIFY(std::find(aromaticityModels.begin(), aromaticityModels.end(), "smiles") != aromaticityModels.end());
-
-    std::vector<std::string> fileFormats = chemkit::MoleculeFileFormat::formats();
-    QVERIFY(std::find(fileFormats.begin(), fileFormats.end(), "smi") != fileFormats.end());
+    // verify that the smiles plugin registered itself correctly
+    QVERIFY(boost::count(chemkit::LineFormat::formats(), "smiles") == 1);
+    QVERIFY(boost::count(chemkit::AromaticityModel::models(), "daylight") == 1);
+    QVERIFY(boost::count(chemkit::MoleculeFileFormat::formats(), "smi") == 1);
 }
 
 void SmilesTest::COMPARE_SMILES(const chemkit::Molecule *molecule, const std::string &smiles)
 {
     chemkit::Molecule moleculeFromSmiles(smiles, "smiles");
 
-    bool equal = molecule->equals(&moleculeFromSmiles, chemkit::Molecule::CompareAromaticity);
+    chemkit::SubstructureQuery query(molecule);
+    query.setFlags(chemkit::SubstructureQuery::CompareAromaticity |
+                   chemkit::SubstructureQuery::CompareExact);
+    bool equal = query.matches(&moleculeFromSmiles);
     if(!equal){
         qDebug() << "Actual SMILES: " << molecule->formula("smiles").c_str();
         qDebug() << "Actual formula: " << moleculeFromSmiles.formula().c_str();
@@ -316,9 +316,21 @@ void SmilesTest::butene()
     chemkit::Molecule cis("C(=C\\C)\\C", "smiles");
     QCOMPARE(cis.formula(), std::string("C4H8"));
 
+    foreach(const chemkit::Bond *bond, cis.bonds()){
+        if(bond->order() == chemkit::Bond::Double){
+            QVERIFY(bond->stereochemistry() == chemkit::Stereochemistry::E);
+        }
+    }
+
     // trans butene
     chemkit::Molecule trans("C(=C/C)\\C", "smiles");
     QCOMPARE(trans.formula(), std::string("C4H8"));
+
+    foreach(const chemkit::Bond *bond, trans.bonds()){
+        if(bond->order() == chemkit::Bond::Double){
+            QVERIFY(bond->stereochemistry() == chemkit::Stereochemistry::Z);
+        }
+    }
 }
 
 void SmilesTest::caffeine()
@@ -531,7 +543,7 @@ void SmilesTest::folate()
     QCOMPARE(molecule.formula(), std::string("C19H19N7O6"));
     QCOMPARE(molecule.ringCount(), size_t(3));
 
-    //COMPARE_SMILES(&molecule, molecule.formula("smiles"));
+    COMPARE_SMILES(&molecule, molecule.formula("smiles"));
 }
 
 void SmilesTest::furan()
@@ -707,7 +719,7 @@ void SmilesTest::isoindene()
         }
     }
 
-    //COMPARE_SMILES(&molecule, molecule.formula("smiles"));
+    COMPARE_SMILES(&molecule, molecule.formula("smiles"));
 }
 
 void SmilesTest::isoindole()
@@ -821,7 +833,7 @@ void SmilesTest::phenanthrene()
         QCOMPARE(ring->isAromatic(), true);
     }
 
-    //COMPARE_SMILES(&molecule, molecule.formula("smiles"));
+    COMPARE_SMILES(&molecule, molecule.formula("smiles"));
 }
 
 void SmilesTest::phenothiazine()
@@ -1081,7 +1093,7 @@ void SmilesTest::thiamin()
     QCOMPARE(molecule.formula(), std::string("C12H16N4OS"));
     QCOMPARE(molecule.ringCount(), size_t(2));
 
-    //COMPARE_SMILES(&molecule, molecule.formula("smiles"));
+    COMPARE_SMILES(&molecule, molecule.formula("smiles"));
 }
 
 void SmilesTest::thiirane()
@@ -1195,12 +1207,12 @@ void SmilesTest::addHydrogens()
     QVERIFY(format);
 
     // default is true
-    QCOMPARE(format->option("add-hydrogens").toBool(), true);
+    QCOMPARE(format->option("add-implicit-hydrogens").toBool(), true);
     chemkit::Molecule *molecule = format->read("C");
     QCOMPARE(molecule->formula(), std::string("CH4"));
     delete molecule;
 
-    format->setOption("add-hydrogens", false);
+    format->setOption("add-implicit-hydrogens", false);
     molecule = format->read("C");
     QCOMPARE(molecule->formula(), std::string("C"));
     delete molecule;
@@ -1313,7 +1325,7 @@ void SmilesTest::herg()
         qDebug() << "Failed to read file: " << file.errorString().c_str();
     QVERIFY(ok);
 
-    QCOMPARE(file.moleculeCount(), 31);
+    QCOMPARE(file.moleculeCount(), size_t(31));
     QCOMPARE(file.molecule(0)->name(), std::string("Amitriptyline"));
     QCOMPARE(file.molecule(0)->formula(), std::string("C20H23N"));
     QCOMPARE(file.molecule(30)->name(), std::string ("Verapamil"));
@@ -1329,7 +1341,7 @@ void SmilesTest::cox2()
         qDebug() << "Failed to read file: " << file.errorString().c_str();
     QVERIFY(ok);
 
-    QCOMPARE(file.moleculeCount(), 128);
+    QCOMPARE(file.moleculeCount(), size_t(128));
     QCOMPARE(file.molecule(0)->formula(), std::string("C13H18N2O5S"));
     QCOMPARE(file.molecule(2)->formula(), std::string("C16H13F2NO3S2"));
     QCOMPARE(file.molecule(127)->formula(), std::string("C21H19NO5S"));

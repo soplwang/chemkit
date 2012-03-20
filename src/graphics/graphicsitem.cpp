@@ -35,6 +35,8 @@
 
 #include "graphicsitem.h"
 
+#include <chemkit/foreach.h>
+
 #include "graphicsview.h"
 #include "graphicsscene.h"
 #include "graphicsmaterial.h"
@@ -186,6 +188,12 @@ void GraphicsItem::translate(float x, float y, float z)
 void GraphicsItem::rotate(const Vector3f &axis, const float angle)
 {
     d->transform *= GraphicsTransform::rotation(axis, angle);
+}
+
+/// Returns the axis-aligned bounding box for the item.
+GraphicsBoundingBox GraphicsItem::boundingBox() const
+{
+    return GraphicsBoundingBox();
 }
 
 bool GraphicsItem::intersects(const GraphicsRay &ray, float *distance) const

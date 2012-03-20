@@ -74,6 +74,8 @@ PluginManager::PluginManager()
 
 PluginManager::~PluginManager()
 {
+    d->pluginClasses.clear();
+
     foreach(Plugin *plugin, d->plugins){
         DynamicLibrary *library = plugin->library();
         delete plugin;
@@ -221,7 +223,7 @@ void PluginManager::setErrorString(const std::string &errorString)
     d->errorString = errorString;
 }
 
-/// Returns a string describing the last error that occured.
+/// Returns a string describing the last error that occurred.
 std::string PluginManager::errorString() const
 {
     return d->errorString;
@@ -239,7 +241,7 @@ PluginManager* PluginManager::instance()
 // --- Internal Methods ---------------------------------------------------- //
 /// Registers a new plugin function for \p className and
 /// \p pluginName.
-bool PluginManager::registerPluginClass(const std::string &className, const std::string &pluginName, Function function)
+bool PluginManager::registerPluginClass(const std::string &className, const std::string &pluginName, boost::function<void* ()> function)
 {
     std::map<std::string, Function> &classPlugins = d->pluginClasses[className];
 
@@ -287,7 +289,7 @@ std::vector<std::string> PluginManager::pluginClassNames(const std::string &clas
 }
 
 /// Returns the registered function for the given \p className and \p pluginName.
-PluginManager::Function PluginManager::pluginClassFunction(const std::string &className, const std::string &pluginName) const
+boost::function<void* ()> PluginManager::pluginClassFunction(const std::string &className, const std::string &pluginName) const
 {
     // ensure default plugins are loaded
     const_cast<PluginManager *>(this)->loadDefaultPlugins();

@@ -35,6 +35,7 @@
 
 #include "mmffpartialchargepredictor.h"
 
+#include <chemkit/foreach.h>
 #include <chemkit/molecule.h>
 #include <chemkit/pluginmanager.h>
 
@@ -68,24 +69,10 @@ MmffPartialChargePredictor::~MmffPartialChargePredictor()
 }
 
 // --- Properties ---------------------------------------------------------- //
-void MmffPartialChargePredictor::setAtomTyper(const MmffAtomTyper *typer)
+void MmffPartialChargePredictor::setMolecule(const chemkit::Molecule *molecule)
 {
-    m_typer = typer;
-}
+    chemkit::PartialChargePredictor::setMolecule(molecule);
 
-// --- Partial Charges ----------------------------------------------------- //
-chemkit::Real MmffPartialChargePredictor::partialCharge(int index) const
-{
-    return m_partialCharges.value(index, 0);
-}
-
-chemkit::Real MmffPartialChargePredictor::partialCharge(const chemkit::Atom *atom) const
-{
-    return partialCharge(atom->index());
-}
-
-void MmffPartialChargePredictor::assignPartialCharges(const chemkit::Molecule *molecule)
-{
     if(!molecule){
         m_partialCharges.resize(0);
         return;
@@ -107,7 +94,7 @@ void MmffPartialChargePredictor::assignPartialCharges(const chemkit::Molecule *m
 
     // setup space for partial charges
     m_partialCharges.resize(molecule->size());
-    m_partialCharges.fill(0);
+    std::fill(m_partialCharges.begin(), m_partialCharges.end(), 0);
 
     // assign partial charges for each atom
     for(size_t i = 0; i < molecule->size(); i++){
@@ -179,4 +166,15 @@ void MmffPartialChargePredictor::assignPartialCharges(const chemkit::Molecule *m
     if(!m_typer){
         delete typer;
     }
+}
+
+void MmffPartialChargePredictor::setAtomTyper(const MmffAtomTyper *typer)
+{
+    m_typer = typer;
+}
+
+// --- Partial Charges ----------------------------------------------------- //
+chemkit::Real MmffPartialChargePredictor::partialCharge(const chemkit::Atom *atom) const
+{
+    return m_partialCharges[atom->index()];
 }

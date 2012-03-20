@@ -35,7 +35,7 @@
 
 #include "xtctest.h"
 
-#include <algorithm>
+#include <boost/range/algorithm.hpp>
 
 #include <chemkit/trajectory.h>
 #include <chemkit/trajectoryfile.h>
@@ -46,8 +46,8 @@ const std::string dataPath = "../../../data/";
 
 void XtcTest::initTestCase()
 {
-    std::vector<std::string> formats = chemkit::TrajectoryFileFormat::formats();
-    QVERIFY(std::find(formats.begin(), formats.end(), "xtc") != formats.end());
+    // verify that the xtc plugin registered itself correctly
+    QVERIFY(boost::count(chemkit::TrajectoryFileFormat::formats(), "xtc") == 1);
 }
 
 void XtcTest::spc216()
@@ -58,9 +58,10 @@ void XtcTest::spc216()
         qDebug() << file.errorString().c_str();
     QVERIFY(ok);
 
-    chemkit::Trajectory *trajectory = file.trajectory();
+    boost::shared_ptr<chemkit::Trajectory> trajectory = file.trajectory();
     QVERIFY(trajectory != 0);
-    QCOMPARE(trajectory->frameCount(), 201);
+    QCOMPARE(trajectory->size(), size_t(648));
+    QCOMPARE(trajectory->frameCount(), size_t(201));
 }
 
 QTEST_APPLESS_MAIN(XtcTest)

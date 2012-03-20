@@ -46,6 +46,7 @@
 
 #include "point3.h"
 #include "vector3.h"
+#include "stereochemistry.h"
 
 namespace chemkit {
 
@@ -81,6 +82,7 @@ public:
     Atom* otherAtom(const Atom *atom) const;
     void setOrder(BondOrderType order);
     BondOrderType order() const;
+    bool is(BondOrderType order) const;
     Real polarity() const;
     Vector3 dipoleMoment() const;
     inline Molecule* molecule() const;
@@ -95,6 +97,7 @@ public:
     bool isTerminal() const;
 
     // ring perception
+    Ring* ring(size_t index) const;
     RingRange rings() const;
     size_t ringCount() const;
     bool isInRing() const;
@@ -105,6 +108,10 @@ public:
     // geometry
     Point3 center() const;
     Real length() const;
+
+    // stereochemistry
+    void setStereochemistry(Stereochemistry::Type stereochemistry);
+    Stereochemistry::Type stereochemistry() const;
 
 private:
     Bond(Molecule *molecule, size_t index);

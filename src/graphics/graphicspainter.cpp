@@ -45,9 +45,9 @@
 #include <chemkit/quaternion.h>
 
 #if defined(Q_WS_MAC)
-# include <OpenGL/glu.h>
+#include <OpenGL/glu.h>
 #else
-# include <GL/glu.h>
+#include <GL/glu.h>
 #endif
 
 namespace {
@@ -90,9 +90,36 @@ GraphicsPainter::~GraphicsPainter()
 // --- Drawing ------------------------------------------------------------- //
 void GraphicsPainter::draw(const GraphicsVertexBuffer *buffer, GraphicsPainter::PrimitiveType type)
 {
-    Q_UNUSED(type);
+    GLenum mode;
 
-    buffer->draw();
+    switch(type){
+    case Triangles:
+        mode = GL_TRIANGLES;
+        break;
+    case TriangleStrip:
+        mode = GL_TRIANGLE_STRIP;
+        break;
+    case TriangleFan:
+        mode = GL_TRIANGLE_FAN;
+        break;
+    case Lines:
+        mode = GL_LINES;
+        break;
+    case LineStrip:
+        mode = GL_LINE_STRIP;
+        break;
+    case LineLoop:
+        mode = GL_LINE_LOOP;
+        break;
+    case Points:
+        mode = GL_POINTS;
+        break;
+    default:
+        mode = GL_TRIANGLES;
+        break;
+    }
+
+    buffer->draw(mode);
 }
 
 void GraphicsPainter::drawSphere(float radius)
@@ -180,15 +207,15 @@ void GraphicsPainter::drawTriangle(const Point3f &a, const Point3f &b, const Poi
     QVector<Vector3f> normals(3);
     normals.fill(normal);
 
-    // indicies
-    QVector<unsigned short> indicies;
-    indicies << 0 << 1 << 2;
+    // indices
+    QVector<unsigned short> indices;
+    indices << 0 << 1 << 2;
 
     // setup buffer
     GraphicsVertexBuffer buffer;
     buffer.setVerticies(verticies);
     buffer.setNormals(normals);
-    buffer.setIndicies(indicies);
+    buffer.setIndicies(indices);
 
     // draw buffer
     draw(&buffer);

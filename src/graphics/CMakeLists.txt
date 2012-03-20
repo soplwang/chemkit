@@ -2,19 +2,22 @@ if(NOT ${CHEMKIT_WITH_GRAPHICS})
   return()
 endif()
 
-find_package(Chemkit COMPONENTS widgets REQUIRED)
+find_package(Chemkit COMPONENTS gui REQUIRED)
 include_directories(${CHEMKIT_INCLUDE_DIRS})
 
 find_package(Qt4 4.6 COMPONENTS QtCore QtGui QtOpenGL REQUIRED)
 set(QT_USE_QTOPENGL TRUE)
 include(${QT_USE_FILE})
 
+# disable Qt keywords
+add_definitions("-DQT_NO_KEYWORDS")
+
 find_package(OpenGL REQUIRED)
 
 set(HEADERS
-  graphicsatomcolormap.h
   graphicsatomitem.h
   graphicsbonditem.h
+  graphicsboundingbox.h
   graphicscamera.h
   graphicscylinder.h
   graphicscylinderitem.h
@@ -25,6 +28,7 @@ set(HEADERS
   graphicsmaterial.h
   graphicsmolecularsurfaceitem.h
   graphicsmoleculeitem.h
+  graphicsmoleculewireframeitem.h
   graphicsnavigationtool.h
   graphicsnucleicaciditem.h
   graphicsoverlay.h
@@ -46,7 +50,6 @@ set(HEADERS
 )
 
 set(SOURCES
-  graphicsatomcolormap.cpp
   graphicsatomitem.cpp
   graphicsbonditem.cpp
   graphicscamera.cpp
@@ -59,6 +62,7 @@ set(SOURCES
   graphicsmaterial.cpp
   graphicsmolecularsurfaceitem.cpp
   graphicsmoleculeitem.cpp
+  graphicsmoleculewireframeitem.cpp
   graphicsnavigationtool.cpp
   graphicsnucleicaciditem.cpp
   graphicsoverlay.cpp

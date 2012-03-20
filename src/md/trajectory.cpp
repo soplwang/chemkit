@@ -47,19 +47,30 @@ namespace chemkit {
 class TrajectoryPrivate
 {
 public:
+    size_t size;
     std::vector<TrajectoryFrame *> frames;
 };
 
 // === Trajectory ========================================================== //
 /// \class Trajectory trajectory.h chemkit/trajectory.h
 /// \ingroup chemkit-md
-/// \brief The Trajectory class contains a trajectory.
+/// \brief The Trajectory class contains a molecular dynamics trajectory.
+///
+/// Trajectory objects contain multiple TrajectoryFrame objects. Each
+/// trajectory frame contains the coordinates for each particle in the
+/// system at a specific point in time.
+///
+/// Trajectories are usually associated with a Topology which contains
+/// the atomic properties and atomic interactions for a system.
+///
+/// \see Topology, TrajectoryFrame, TrajectoryFile
 
 // --- Construction and Destruction ---------------------------------------- //
-/// Creates a new trajectory.
-Trajectory::Trajectory()
+/// Creates a new trajectory with \p size.
+Trajectory::Trajectory(size_t size)
     : d(new TrajectoryPrivate)
 {
+    d->size = size;
 }
 
 /// Destroys the trajectory object.
@@ -73,23 +84,33 @@ Trajectory::~Trajectory()
 }
 
 // --- Properties ---------------------------------------------------------- //
-/// Returns the number of frames in the trajectory.
-int Trajectory::size() const
+/// Sets the number of particles in the trajectory to \p size.
+void Trajectory::resize(size_t size)
 {
-    return frameCount();
+    d->size = size;
+
+    foreach(TrajectoryFrame *frame, d->frames){
+        frame->resize(size);
+    }
+}
+
+/// Returns the number of particles in the trajectory.
+size_t Trajectory::size() const
+{
+    return d->size;
 }
 
 /// Returns \c true if the trajectory contains no frames.
 bool Trajectory::isEmpty() const
 {
-    return size() == 0;
+    return frameCount() == 0;
 }
 
 // --- Frames -------------------------------------------------------------- //
 /// Adds a new frame to the trajectory.
 TrajectoryFrame* Trajectory::addFrame()
 {
-    TrajectoryFrame *frame = new TrajectoryFrame(this);
+    TrajectoryFrame *frame = new TrajectoryFrame(this, d->size);
     d->frames.push_back(frame);
     return frame;
 }
@@ -109,7 +130,7 @@ bool Trajectory::removeFrame(TrajectoryFrame *frame)
 }
 
 /// Returns the frame at \p index in the trajectory.
-TrajectoryFrame* Trajectory::frame(int index) const
+TrajectoryFrame* Trajectory::frame(size_t index) const
 {
     return d->frames[index];
 }
@@ -121,7 +142,7 @@ std::vector<TrajectoryFrame *> Trajectory::frames() const
 }
 
 /// Returns the number of frames in the trajectory.
-int Trajectory::frameCount() const
+size_t Trajectory::frameCount() const
 {
     return d->frames.size();
 }

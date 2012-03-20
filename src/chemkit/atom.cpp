@@ -101,7 +101,7 @@ void Atom::setAtomicNumber(AtomicNumberType atomicNumber)
     }
 
     m_molecule->m_elements[m_index].setAtomicNumber(atomicNumber);
-    m_molecule->notifyWatchers(this, Molecule::AtomElementChanged);
+    m_molecule->notifyWatchers(this, MoleculeWatcher::AtomElementChanged);
 }
 
 /// Returns the atomic number of the atom.
@@ -118,7 +118,7 @@ void Atom::setIsotope(const Isotope &isotope)
     }
 
     m_molecule->d->isotopes[this] = isotope;
-    m_molecule->notifyWatchers(this, Molecule::AtomMassNumberChanged);
+    m_molecule->notifyWatchers(this, MoleculeWatcher::AtomMassNumberChanged);
 }
 
 /// Returns the isotope for the atom.
@@ -168,7 +168,7 @@ int Atom::formalCharge() const
 void Atom::setPartialCharge(Real charge)
 {
     m_molecule->d->partialCharges[m_index] = charge;
-    m_molecule->notifyWatchers(this, Molecule::AtomPartialChargeChanged);
+    m_molecule->notifyWatchers(this, MoleculeWatcher::AtomPartialChargeChanged);
 }
 
 /// Returns the partial charge of the atom.
@@ -215,12 +215,6 @@ Real Atom::vanDerWaalsRadius() const
     return element().vanDerWaalsRadius();
 }
 
-/// Returns \c true if this atom is not Carbon or Hydrogen.
-bool Atom::isHeteroatom() const
-{
-    return !is(Hydrogen) && !is(Carbon);
-}
-
 /// Returns the fragment the atom is a part of.
 Fragment* Atom::fragment() const
 {
@@ -228,6 +222,12 @@ Fragment* Atom::fragment() const
 }
 
 // --- Structure ----------------------------------------------------------- //
+/// Returns the bond at \p index for the atom.
+Bond* Atom::bond(size_t index) const
+{
+    return bonds()[index];
+}
+
 /// Returns a range containing all of the bonds that the atom is a
 /// member of.
 Atom::BondRange Atom::bonds() const
@@ -364,6 +364,12 @@ bool Atom::isTerminalHydrogen() const
 }
 
 // --- Ring Perception ----------------------------------------------------- //
+/// Returns the ring at \p index for the atom.
+Ring* Atom::ring(size_t index) const
+{
+    return rings().advance_begin(index).front();
+}
+
 /// Returns a range containing all of the rings that contain the
 /// atom.
 ///
@@ -460,7 +466,7 @@ void Atom::setPosition(const Point3 &position)
 {
     m_molecule->coordinates()->setPosition(m_index, position);
 
-    m_molecule->notifyWatchers(this, Molecule::AtomPositionChanged);
+    m_molecule->notifyWatchers(this, MoleculeWatcher::AtomPositionChanged);
 }
 
 /// Sets the coordinates of the atom to (x, y, z). Equivalent to
@@ -532,7 +538,7 @@ Real Atom::distance(const Atom *atom) const
 void Atom::setChirality(Stereochemistry::Type chirality)
 {
     m_molecule->stereochemistry()->setStereochemistry(this, chirality);
-    m_molecule->notifyWatchers(this, Molecule::AtomChiralityChanged);
+    m_molecule->notifyWatchers(this, MoleculeWatcher::AtomChiralityChanged);
 }
 
 /// Returns the chirality of the atom.

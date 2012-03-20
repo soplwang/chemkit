@@ -39,12 +39,12 @@
 #include "graphics.h"
 
 #include <chemkit/molecule.h>
+#include <chemkit/atomcolormap.h>
 #include <chemkit/moleculewatcher.h>
 
 #include "graphicsitem.h"
 #include "graphicsatomitem.h"
 #include "graphicsbonditem.h"
-#include "graphicsatomcolormap.h"
 
 namespace chemkit {
 
@@ -83,8 +83,8 @@ public:
     bool bondOrderVisible() const;
     void setAtomColoredBonds(bool atomColoredBonds);
     bool atomColoredBonds() const;
-    void setAtomColorMap(GraphicsAtomColorMap *colorMap);
-    GraphicsAtomColorMap* atomColorMap() const;
+    void setAtomColorMap(AtomColorMap *colorMap);
+    AtomColorMap* atomColorMap() const;
 
     // items
     GraphicsAtomItem* atomItem(const Atom *atom) const;

@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2009-2011 Kyle Lutz <kyle.r.lutz@gmail.com>
+** Copyright (C) 2009-2012 Kyle Lutz <kyle.r.lutz@gmail.com>
 ** All rights reserved.
 **
 ** This file is a part of the chemkit project. For more information
@@ -33,24 +33,18 @@
 **
 ******************************************************************************/
 
-#include "xtcplugin.h"
+#include <chemkit/plugin.h>
 
 #include "xtcfileformat.h"
 
-XtcPlugin::XtcPlugin()
-    : chemkit::Plugin("xtc")
+class XtcPlugin : public chemkit::Plugin
 {
-    registerPluginClass<chemkit::TrajectoryFileFormat>("xtc", createXtcFormat);
-}
-
-XtcPlugin::~XtcPlugin()
-{
-    unregisterPluginClass<chemkit::TrajectoryFileFormat>("xtc");
-}
-
-chemkit::TrajectoryFileFormat* XtcPlugin::createXtcFormat()
-{
-    return new XtcFileFormat;
-}
+public:
+    XtcPlugin()
+        : chemkit::Plugin("xtc")
+    {
+        CHEMKIT_REGISTER_TRAJECTORY_FILE_FORMAT("xtc", XtcFileFormat);
+    }
+};
 
 CHEMKIT_EXPORT_PLUGIN(xtc, XtcPlugin)

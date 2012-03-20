@@ -44,10 +44,11 @@ class InchiLineFormat : public chemkit::LineFormat
 public:
     InchiLineFormat();
 
-    bool read(const std::string &formula, chemkit::Molecule *molecule);
-    std::string write(const chemkit::Molecule *molecule);
+    chemkit::Molecule* read(const std::string &formula) CHEMKIT_OVERRIDE;
+    std::string write(const chemkit::Molecule *molecule) CHEMKIT_OVERRIDE;
 
-    virtual chemkit::Variant defaultOption(const std::string &name) const;
+protected:
+    chemkit::Variant defaultOption(const std::string &name) const CHEMKIT_OVERRIDE;
 };
 
 #endif // INCHILINEFORMAT_H

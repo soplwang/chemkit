@@ -51,12 +51,16 @@ InchiLineFormat::InchiLineFormat()
 {
 }
 
-bool InchiLineFormat::read(const std::string &formula, chemkit::Molecule *molecule)
+chemkit::Molecule* InchiLineFormat::read(const std::string &formula)
 {
     // verify formula
     if(formula.empty()){
+        setErrorString("Formula is empty.");
         return 0;
     }
+
+    // create molecule
+    chemkit::Molecule *molecule = new chemkit::Molecule;
 
     std::string formulaString = formula;
 
@@ -76,20 +80,28 @@ bool InchiLineFormat::read(const std::string &formula, chemkit::Molecule *molecu
     int ret = GetStructFromStdINCHI(&input, &output);
     CHEMKIT_UNUSED(ret);
 
-    // build molecule from inchi output
-    std::vector<chemkit::Atom *> atoms(output.num_atoms);
-
-    bool addHydrogens = option("add-hydrogens").toBool();
-
     // add atoms
+    for(int i = 0; i < output.num_atoms; i++){
+        molecule->addAtom(output.atom[i].elname);
+    }
+
+    // add bonds
     for(int i = 0; i < output.num_atoms; i++){
         inchi_Atom *inchiAtom = &output.atom[i];
 
-        chemkit::Atom *atom = molecule->addAtom(inchiAtom->elname);
-        atoms[i] = atom;
+        for(int j = 0; j < inchiAtom->num_bonds; j++){
+            molecule->addBond(i, inchiAtom->neighbor[j], inchiAtom->bond_type[j]);
+        }
+    }
 
-        // add implicit hydrogens (if enabled)
-        if(addHydrogens){
+    // add implicit hydrogens (if enabled)
+    bool addHydrogens = option("add-implicit-hydrogens").toBool();
+
+    if(addHydrogens){
+        for(int i = 0; i < output.num_atoms; i++){
+            chemkit::Atom *atom = molecule->atom(i);
+            inchi_Atom *inchiAtom = &output.atom[i];
+
             for(int j = 0; j < inchiAtom->num_iso_H[0]; j++){
                 chemkit::Atom *hydrogen = molecule->addAtom(chemkit::Atom::Hydrogen);
                 molecule->addBond(atom, hydrogen);
@@ -97,22 +109,10 @@ bool InchiLineFormat::read(const std::string &formula, chemkit::Molecule *molecu
         }
     }
 
-    // add bonds
-    for(int i = 0; i < output.num_atoms; i++){
-        inchi_Atom *inchiAtom = &output.atom[i];
-
-        chemkit::Atom *atom = atoms[i];
-
-        for(int j = 0; j < inchiAtom->num_bonds; j++){
-            chemkit::Atom *neighbor = atoms[inchiAtom->neighbor[j]];
-            molecule->addBond(atom, neighbor, inchiAtom->bond_type[j]);
-        }
-    }
-
     // free output structure
     FreeStructFromStdINCHI(&output);
 
-    return true;
+    return molecule;
 }
 
 std::string InchiLineFormat::write(const chemkit::Molecule *molecule)
@@ -183,12 +183,21 @@ std::string InchiLineFormat::write(const chemkit::Molecule *molecule)
         inputAtom++;
     }
 
+    // count double bonds with stereochemistry
+    std::vector<const chemkit::Bond *> stereogenicBonds;
+    foreach(const chemkit::Bond *bond, molecule->bonds()){
+        if(bond->order() == chemkit::Bond::Double &&
+           bond->stereochemistry() != chemkit::Stereochemistry::None){
+            stereogenicBonds.push_back(bond);
+        }
+    }
+
     // add stereochemistry if enabled
     bool stereochemistry = option("stereochemistry").toBool();
 
     if(stereochemistry){
-        input.stereo0D = new inchi_Stereo0D[chiralAtoms.size()];
-        input.num_stereo0D = chiralAtoms.size();
+        input.num_stereo0D = chiralAtoms.size() + stereogenicBonds.size();
+        input.stereo0D = new inchi_Stereo0D[input.num_stereo0D];
 
         int chiralIndex = 0;
 
@@ -205,10 +214,10 @@ std::string InchiLineFormat::write(const chemkit::Molecule *molecule)
             stereo->type = INCHI_StereoType_Tetrahedral;
 
             if(atom->chirality() == chemkit::Stereochemistry::R){
-                stereo->parity = INCHI_PARITY_EVEN;
+                stereo->parity = INCHI_PARITY_ODD;
             }
             else if(atom->chirality() == chemkit::Stereochemistry::S){
-                stereo->parity = INCHI_PARITY_ODD;
+                stereo->parity = INCHI_PARITY_EVEN;
             }
             else if(atom->chirality() == chemkit::Stereochemistry::Unspecified){
                 stereo->parity = INCHI_PARITY_UNDEFINED;
@@ -216,6 +225,64 @@ std::string InchiLineFormat::write(const chemkit::Molecule *molecule)
             else{
                 stereo->parity = INCHI_PARITY_UNKNOWN;
             }
+
+            chiralIndex++;
+        }
+
+        foreach(const chemkit::Bond *bond, stereogenicBonds){
+            inchi_Stereo0D *stereo = &input.stereo0D[chiralIndex];
+            memset(stereo, 0, sizeof(*stereo));
+
+            stereo->central_atom = NO_ATOM;
+            stereo->type = INCHI_StereoType_DoubleBond;
+
+            if(bond->stereochemistry() == chemkit::Stereochemistry::E){
+                stereo->parity = INCHI_PARITY_EVEN;
+            }
+            else if(bond->stereochemistry() == chemkit::Stereochemistry::Z){
+                stereo->parity = INCHI_PARITY_ODD;
+            }
+            else{
+                stereo->parity = INCHI_PARITY_UNKNOWN;
+            }
+
+            // bond atoms
+            stereo->neighbor[1] = bond->atom1()->index();
+            stereo->neighbor[2] = bond->atom2()->index();
+
+            // neighbor atoms
+            const chemkit::Atom *highestPriorityNeighbor = 0;
+
+            foreach(const chemkit::Atom *neighbor, bond->atom1()->neighbors()){
+                if(neighbor == bond->atom2()){
+                    continue;
+                }
+
+                if(!highestPriorityNeighbor){
+                    highestPriorityNeighbor = neighbor;
+                }
+                else if(neighbor->atomicNumber() > highestPriorityNeighbor->atomicNumber()){
+                    highestPriorityNeighbor = neighbor;
+                }
+            }
+
+            stereo->neighbor[0] = highestPriorityNeighbor->index();
+
+            highestPriorityNeighbor = 0;
+            foreach(const chemkit::Atom *neighbor, bond->atom2()->neighbors()){
+                if(neighbor == bond->atom1()){
+                    continue;
+                }
+
+                if(!highestPriorityNeighbor){
+                    highestPriorityNeighbor = neighbor;
+                }
+                else if(neighbor->atomicNumber() > highestPriorityNeighbor->atomicNumber()){
+                    highestPriorityNeighbor = neighbor;
+                }
+            }
+
+            stereo->neighbor[3] = highestPriorityNeighbor->index();
 
             chiralIndex++;
         }
@@ -262,7 +329,7 @@ chemkit::Variant InchiLineFormat::defaultOption(const std::string &name) const
 {
     if(name == "stereochemistry")
         return true;
-    else if(name == "add-hydrogens")
+    else if(name == "add-implicit-hydrogens")
         return true;
     else
         return chemkit::Variant();

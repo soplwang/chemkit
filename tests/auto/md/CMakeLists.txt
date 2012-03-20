@@ -11,3 +11,5 @@ set(QT_USE_QTTEST TRUE)
 include(${QT_USE_FILE})
 
 add_subdirectory(forcefield)
+add_subdirectory(moleculegeometryoptimizer)
+add_subdirectory(topology)

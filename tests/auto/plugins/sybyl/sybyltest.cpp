@@ -35,7 +35,7 @@
 
 #include "sybyltest.h"
 
-#include <algorithm>
+#include <boost/range/algorithm.hpp>
 
 #include <chemkit/molecule.h>
 #include <chemkit/atomtyper.h>
@@ -46,36 +46,37 @@ const std::string dataPath = "../../../data/";
 
 void SybylTest::initTestCase()
 {
-    std::vector<std::string> typers = chemkit::AtomTyper::typers();
-    QVERIFY(std::find(typers.begin(), typers.end(), "sybyl") != typers.end());
-
-    std::vector<std::string> fileFormats = chemkit::MoleculeFileFormat::formats();
-    QVERIFY(std::find(fileFormats.begin(), fileFormats.end(), "mol2") != fileFormats.end());
+    // verify that the sybyl plugin registered itself correctly
+    QVERIFY(boost::count(chemkit::AtomTyper::typers(), "sybyl") == 1);
+    QVERIFY(boost::count(chemkit::MoleculeFileFormat::formats(), "mol2") == 1);
 }
 
 void SybylTest::readMol2_data()
 {
-    QTest::addColumn<QString>("fileName");
-    QTest::addColumn<QString>("formula");
+    QTest::addColumn<QString>("fileNameString");
+    QTest::addColumn<QString>("formulaString");
 
     QTest::newRow("uridine") << "uridine.mol2" << "C9H13N2O9P";
 }
 
 void SybylTest::readMol2()
 {
-    QFETCH(QString, fileName);
-    QFETCH(QString, formula);
+    QFETCH(QString, fileNameString);
+    QFETCH(QString, formulaString);
 
-    chemkit::MoleculeFile file(dataPath + fileName.toStdString());
+    QByteArray fileName = fileNameString.toAscii();
+    QByteArray formula = formulaString.toAscii();
+
+    chemkit::MoleculeFile file(dataPath + fileName.constData());
     bool ok = file.read();
     if(!ok)
         qDebug() << file.errorString().c_str();
     QVERIFY(ok);
 
-    QCOMPARE(file.moleculeCount(), 1);
-    chemkit::Molecule *molecule = file.molecule();
+    QCOMPARE(file.moleculeCount(), size_t(1));
+    boost::shared_ptr<chemkit::Molecule> molecule = file.molecule();
     QVERIFY(molecule != 0);
-    QCOMPARE(molecule->formula(), formula.toStdString());
+    QCOMPARE(molecule->formula().c_str(), formula.constData());
 }
 
 QTEST_APPLESS_MAIN(SybylTest)

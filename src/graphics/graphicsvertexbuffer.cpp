@@ -37,12 +37,14 @@
 
 #include <QtOpenGL>
 
+#include <chemkit/foreach.h>
+
 #if !defined(Q_WS_MAC)
-# if defined(Q_WS_WIN)
-#  include "../3rdparty/khronos/GL/glext.h"
-# else
-#  include <GL/glext.h>
-# endif
+ #if defined(Q_WS_WIN)
+   #include "../3rdparty/khronos/GL/glext.h"
+ #else
+  #include <GL/glext.h>
+ #endif
 #endif
 
 #if !defined(Q_WS_MAC)
@@ -117,18 +119,9 @@ void setupGlFunctions()
 }
 
 } // end anonymous namespace
-#endif
+#endif // !Q_WS_MAC
 
 namespace chemkit {
-
-/// A four-component color.
-typedef Eigen::Matrix<Real, 4, 1> Color4;
-
-/// A four-component color containing \c float values.
-typedef Eigen::Matrix<float, 4, 1> Color4f;
-
-/// A four-component color containing \c double values.
-typedef Eigen::Matrix<double, 4, 1> Color4d;
 
 // === GraphicsVertexBufferPrivate ========================================= //
 class GraphicsVertexBufferPrivate
@@ -139,8 +132,8 @@ public:
     GLuint indexBuffer;
     QVector<Point3f> verticies;
     QVector<Vector3f> normals;
-    QVector<Color4f> colors;
-    QVector<unsigned short> indicies;
+    QVector<unsigned short> indices;
+    QVector<unsigned char> colors;
 };
 
 // === GraphicsVertexBuffer ================================================ //
@@ -151,7 +144,7 @@ public:
 ///        object.
 ///
 /// Vertex buffers contain vertex positions and optionally may also
-/// contain data for normals, indicies, and colors.
+/// contain data for normals, indices, and colors.
 
 // --- Construction and Destruction ---------------------------------------- //
 /// Create a new, empty vertex buffer object.
@@ -209,8 +202,8 @@ void GraphicsVertexBuffer::clear()
 {
     d->verticies.clear();
     d->normals.clear();
+    d->indices.clear();
     d->colors.clear();
-    d->indicies.clear();
 
     d->readyToDraw = false;
 }
@@ -220,7 +213,6 @@ void GraphicsVertexBuffer::clear()
 void GraphicsVertexBuffer::setVerticies(const QVector<Point3f> &verticies)
 {
     d->verticies = verticies;
-    d->readyToDraw = false;
 }
 
 /// Returns the verticies contained in the vertex buffer.
@@ -240,7 +232,6 @@ int GraphicsVertexBuffer::vertexCount() const
 void GraphicsVertexBuffer::setNormals(const QVector<Vector3f> &normals)
 {
     d->normals = normals;
-    d->readyToDraw = false;
 }
 
 /// Returns a list containing the vertex normals in the buffer.
@@ -255,86 +246,106 @@ int GraphicsVertexBuffer::normalCount() const
     return d->normals.size();
 }
 
-// --- Colors -------------------------------------------------------------- //
-/// Sets the vertex colors to \p colors.
-void GraphicsVertexBuffer::setColors(const QVector<QColor> &colors)
+// --- Indicies ------------------------------------------------------------ //
+/// Sets the indices to \p indices.
+void GraphicsVertexBuffer::setIndicies(const QVector<unsigned short> &indices)
 {
-    d->colors.reserve(colors.size());
-
-    foreach(const QColor &color, colors) {
-        d->colors.push_back(Color4f(color.redF(), color.greenF(), color.blueF(), color.alphaF()));
-    }
-    d->readyToDraw = false;
+    d->indices = indices;
 }
 
-/// Returns a list containing the vertex colors in the buffer.
+/// Returns the indices contained in the vertex buffer.
+QVector<unsigned short> GraphicsVertexBuffer::indices() const
+{
+    return d->indices;
+}
+
+/// Returns the number of indices in the buffer.
+int GraphicsVertexBuffer::indexCount() const
+{
+    return d->indices.size();
+}
+
+// --- Colors -------------------------------------------------------------- //
+/// Sets the colors to \p colors.
+void GraphicsVertexBuffer::setColors(const QVector<QColor> &colors)
+{
+    d->colors.clear();
+
+    foreach(const QColor &color, colors){
+        d->colors.append(color.red());
+        d->colors.append(color.green());
+        d->colors.append(color.blue());
+        d->colors.append(color.alpha());
+    }
+}
+
+/// Returns the colors in the vertex buffer.
 QVector<QColor> GraphicsVertexBuffer::colors() const
 {
     QVector<QColor> colors;
-    colors.reserve(d->colors.size());
 
-    foreach(const Color4f &color, d->colors) {
-        colors.push_back(QColor::fromRgbF(color[0], color[1], color[2], color[3]));
+    for(int i = 0; i < d->colors.size(); i += 4){
+        colors.append(QColor::fromRgb(d->colors[i+0],
+                                      d->colors[i+1],
+                                      d->colors[i+2],
+                                      d->colors[i+3]));
     }
 
     return colors;
 }
 
-/// Returns the number of vertex colors in the buffer.
+/// Returns the number of colors in the vertex buffer.
 int GraphicsVertexBuffer::colorCount() const
 {
-    return d->colors.size();
-}
-
-// --- Indicies ------------------------------------------------------------ //
-/// Sets the indicies to \p indicies.
-void GraphicsVertexBuffer::setIndicies(const QVector<unsigned short> &indicies)
-{
-    d->indicies = indicies;
-}
-
-/// Returns the indicies contained in the vertex buffer.
-QVector<unsigned short> GraphicsVertexBuffer::indicies() const
-{
-    return d->indicies;
-}
-
-/// Returns the number of indicies in the buffer.
-int GraphicsVertexBuffer::indexCount() const
-{
-    return d->indicies.size();
+    return d->colors.size() / 4;
 }
 
 // --- Drawing ------------------------------------------------------------- //
-void GraphicsVertexBuffer::draw() const
+void GraphicsVertexBuffer::draw(GLenum mode) const
 {
     if(!d->readyToDraw){
         prepareToDraw();
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, d->vertexBuffer);
+
+    // setup verticies
     glVertexPointer(3, GL_FLOAT, 0, 0);
-    glNormalPointer(GL_FLOAT, 0, reinterpret_cast<void *>(d->verticies.size() * sizeof(Point3f)));
-    if(!d->colors.isEmpty()) {
-        glColorPointer(4, GL_FLOAT, 0, reinterpret_cast<void *>(d->verticies.size() * sizeof(Point3f) + d->normals.size() * sizeof(Vector3f)));
+    glEnableClientState(GL_VERTEX_ARRAY);
+
+    // setup normals
+    if(!d->normals.isEmpty()){
+        size_t offset = d->verticies.size() * sizeof(Point3f);
+        glNormalPointer(GL_FLOAT, 0, reinterpret_cast<void *>(offset));
+        glEnableClientState(GL_NORMAL_ARRAY);
     }
 
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    if (!d->colors.isEmpty()) {
+    // setup colors
+    if(!d->colors.isEmpty()){
+        size_t offset = (d->verticies.size() * sizeof(Point3f)) +
+                        (d->normals.size() * sizeof(Vector3f));
+        glColorPointer(4, GL_UNSIGNED_BYTE, 0, reinterpret_cast<void *>(offset));
         glEnableClientState(GL_COLOR_ARRAY);
     }
 
-    if(!d->indicies.isEmpty()){
-        glDrawElements(GL_TRIANGLES, d->indicies.size(), GL_UNSIGNED_SHORT, d->indicies.data());
+    // draw
+    if(!d->indices.isEmpty()){
+        glDrawElements(mode, d->indices.size(), GL_UNSIGNED_SHORT, d->indices.data());
     }
     else{
         glDrawArrays(GL_POINTS, 0, d->verticies.size());
     }
 
-    if (!d->colors.isEmpty()) {
+    // cleanup state
+    if(!d->colors.isEmpty()){
         glDisableClientState(GL_COLOR_ARRAY);
     }
+
+    if(!d->normals.isEmpty()){
+        glDisableClientState(GL_NORMAL_ARRAY);
+    }
+
+    glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 void GraphicsVertexBuffer::prepareToDraw() const
@@ -343,7 +354,9 @@ void GraphicsVertexBuffer::prepareToDraw() const
 
     // allocate space
     glBufferData(GL_ARRAY_BUFFER,
-                 d->verticies.size() * sizeof(Point3f) + d->normals.size() * sizeof(Vector3f) + d->colors.size() * sizeof(Color4f),
+                 d->verticies.size() * sizeof(Point3f) +
+                 d->normals.size() * sizeof(Vector3f) +
+                 d->colors.size() * sizeof(unsigned char),
                  0,
                  GL_STATIC_DRAW);
 
@@ -360,12 +373,11 @@ void GraphicsVertexBuffer::prepareToDraw() const
                     d->normals.data());
 
     // load colors
-    if(!d->colors.isEmpty()) {
-        glBufferSubData(GL_ARRAY_BUFFER,
-                        d->verticies.size() * sizeof(Point3f) + d->normals.size() * sizeof(Vector3f),
-                        d->colors.size() * sizeof(Color4f),
-                        d->colors.data());
-    }
+    glBufferSubData(GL_ARRAY_BUFFER,
+                    d->verticies.size() * sizeof(Point3f) +
+                    d->normals.size() * sizeof(Vector3f),
+                    d->colors.size() * sizeof(unsigned char),
+                    d->colors.data());
 
     d->readyToDraw = true;
 }

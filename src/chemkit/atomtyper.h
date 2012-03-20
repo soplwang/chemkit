@@ -41,6 +41,7 @@
 #include <string>
 #include <vector>
 
+#include "plugin.h"
 #include "variant.h"
 
 namespace chemkit {
@@ -52,24 +53,35 @@ class AtomTyperPrivate;
 class CHEMKIT_EXPORT AtomTyper
 {
 public:
-    // typedefs
-    typedef AtomTyper* (*CreateFunction)();
-
     // construction and destruction
     virtual ~AtomTyper();
 
     // properties
     std::string name() const;
-    void setMolecule(const Molecule *molecule);
+    virtual void setMolecule(const Molecule *molecule);
     const Molecule* molecule() const;
 
     // types
-    virtual Variant type(int index) const;
     virtual Variant type(const Atom *atom) const;
-    virtual int typeNumber(int index) const;
     virtual int typeNumber(const Atom *atom) const;
-    virtual std::string typeString(int index) const;
     virtual std::string typeString(const Atom *atom) const;
+
+    // predicates
+    static bool isCarbonylCarbon(const Atom *atom);
+    static bool isCarbonylOxygen(const Atom *atom);
+    static bool isHalogen(const Atom *atom);
+    static bool isHydrogenDonor(const Atom *atom);
+    static bool isHydrogenAcceptor(const Atom *atom);
+    static bool isHydroxylHydrogen(const Atom *atom);
+    static bool isHydroxylOxygen(const Atom *atom);
+    static bool isNitrileCarbon(const Atom *atom);
+    static bool isNitrileNitrogen(const Atom *atom);
+    static bool isNitroOxygen(const Atom *atom);
+    static bool isNitroNitrogen(const Atom *atom);
+    static bool isPolarHydrogen(const Atom *atom);
+    static bool isNonpolarHydrogen(const Atom *atom);
+    static bool isThiolHydrogen(const Atom *atom);
+    static bool isThiolSulfur(const Atom *atom);
 
     // static methods
     static AtomTyper* create(const std::string &name);
@@ -77,12 +89,15 @@ public:
 
 protected:
     AtomTyper(const std::string &name);
-    virtual void assignTypes(const Molecule *molecule);
 
 private:
     AtomTyperPrivate* const d;
 };
 
 } // end chemkit namespace
+
+/// Registers an atom typer with \p name.
+#define CHEMKIT_REGISTER_ATOM_TYPER(name, className) \
+    CHEMKIT_REGISTER_PLUGIN_CLASS(name, chemkit::AtomTyper, className)
 
 #endif // CHEMKIT_ATOMTYPER_H

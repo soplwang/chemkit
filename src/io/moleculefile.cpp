@@ -35,8 +35,11 @@
 
 #include "moleculefile.h"
 
+#include <boost/lambda/lambda.hpp>
+
 #include <chemkit/foreach.h>
 #include <chemkit/molecule.h>
+#include <chemkit/variantmap.h>
 
 namespace chemkit {
 
@@ -44,8 +47,8 @@ namespace chemkit {
 class MoleculeFilePrivate
 {
 public:
-    std::vector<Molecule *> molecules;
-    std::map<std::string, Variant> fileData;
+    std::vector<boost::shared_ptr<Molecule> > molecules;
+    VariantMap fileData;
 };
 
 // === MoleculeFile ======================================================== //
@@ -57,17 +60,12 @@ public:
 /// Molecule files object can be used to both read and write molecule
 /// data contained in files.
 ///
-/// The following molecule file formats are supported in chemkit:
-///     - \c cml
-///     - \c inchi
-///     - \c mdl
-///     - \c mol
-///     - \c mol2
-///     - \c sd
-///     - \c sdf
-///     - \c smi
-///     - \c txyz
-///     - \c xyz
+/// The MoleculeFile class stores molecules using boost::shared_ptr's
+/// which allow the each molecule's memory to be shared between
+/// multiple classes.
+///
+/// A list of supported molecule file formats is available at:
+/// http://wiki.chemkit.org/Features#Molecule_File_Formats
 ///
 /// The following example shows how to read a molecule from a file:
 /// \code
@@ -78,7 +76,7 @@ public:
 /// file.read();
 ///
 /// // access molecule
-/// Molecule *molecule = file.molecule();
+/// boost::shared_ptr<Molecule> molecule = file.molecule();
 /// \endcode
 ///
 /// \see PolymerFile
@@ -101,15 +99,12 @@ MoleculeFile::MoleculeFile(const std::string &fileName)
 /// any molecules that it contains.
 MoleculeFile::~MoleculeFile()
 {
-    foreach(Molecule *molecule, d->molecules)
-        delete molecule;
-
     delete d;
 }
 
 // --- Properties ---------------------------------------------------------- //
 /// Returns the number of molecules in the file.
-int MoleculeFile::size() const
+size_t MoleculeFile::size() const
 {
     return moleculeCount();
 }
@@ -123,108 +118,89 @@ bool MoleculeFile::isEmpty() const
 
 // --- File Contents ------------------------------------------------------- //
 /// Adds the molecule to the file.
-///
-/// The file will take ownership of the molecule until it is removed.
-void MoleculeFile::addMolecule(Molecule *molecule)
+void MoleculeFile::addMolecule(const boost::shared_ptr<Molecule> &molecule)
 {
     d->molecules.push_back(molecule);
 }
 
 /// Removes the molecule from the file. Returns \c true if
 /// \p molecule is found and removed successfully.
-///
-/// The ownership of \p molecule is passed to the caller.
-bool MoleculeFile::removeMolecule(Molecule *molecule)
+bool MoleculeFile::removeMolecule(const boost::shared_ptr<Molecule> &molecule)
 {
-    std::vector<Molecule *>::iterator location = std::find(d->molecules.begin(), d->molecules.end(), molecule);
-    if(location == d->molecules.end()){
+    std::vector<boost::shared_ptr<Molecule> >::iterator iter = std::find(d->molecules.begin(),
+                                                                         d->molecules.end(),
+                                                                         molecule);
+    if(iter == d->molecules.end()){
         return false;
     }
 
-    d->molecules.erase(location);
-
+    d->molecules.erase(iter);
     return true;
 }
 
-/// Removes the molecule from the file and deletes it. Returns
-/// \c true if \p molecule is found and deleted successfully.
-bool MoleculeFile::deleteMolecule(Molecule *molecule)
-{
-    bool found = removeMolecule(molecule);
-
-    if(found){
-        delete molecule;
-    }
-
-    return found;
-}
-
-/// Returns a list of all the molecules in the file.
-std::vector<Molecule *> MoleculeFile::molecules() const
-{
-    return d->molecules;
-}
-
-/// Returns the number of molecules in the file.
-int MoleculeFile::moleculeCount() const
-{
-    return d->molecules.size();
-}
-
-/// Returns an iterator range containing the molecules in the
-/// file.
-///
-/// \internal
-MoleculeFile::MoleculeRange MoleculeFile::moleculeRange() const
+/// Returns a range containing all of the molecules in the file.
+MoleculeFile::MoleculeRange MoleculeFile::molecules() const
 {
     return boost::make_iterator_range(d->molecules.begin(),
                                       d->molecules.end());
 }
 
+/// Returns the number of molecules in the file.
+size_t MoleculeFile::moleculeCount() const
+{
+    return d->molecules.size();
+}
+
 /// Returns the molecule at \p index in the file.
-Molecule* MoleculeFile::molecule(int index) const
+boost::shared_ptr<Molecule> MoleculeFile::molecule(size_t index) const
 {
     return d->molecules[index];
 }
 
-/// Returns \c true if the file contains \p molecule.
-bool MoleculeFile::contains(const Molecule *molecule) const
+/// Returns the molecule in the file with \p name. Returns a null
+/// pointer if no molecule with \p name is found.
+boost::shared_ptr<Molecule> MoleculeFile::molecule(const std::string &name) const
 {
-    return std::find(d->molecules.begin(), d->molecules.end(), molecule) != d->molecules.end();
+    foreach(const boost::shared_ptr<Molecule> &molecule, d->molecules){
+        if(molecule->name() == name){
+            return molecule;
+        }
+    }
+
+    return boost::shared_ptr<Molecule>();
+}
+
+/// Returns \c true if the file contains \p molecule.
+bool MoleculeFile::contains(const boost::shared_ptr<Molecule> &molecule) const
+{
+    return std::find(d->molecules.begin(),
+                     d->molecules.end(),
+                     molecule) != d->molecules.end();
 }
 
 /// Removes all of the molecules from the file and deletes all
 /// of the data in the file.
 void MoleculeFile::clear()
 {
-    foreach(Molecule *molecule, d->molecules)
-        delete molecule;
-
     d->molecules.clear();
     d->fileData.clear();
 }
 
 // --- Static Methods ------------------------------------------------------ //
-/// Reads and returns a molecule from the file. Returns \c 0 if there
-/// was an error reading the file or the file is empty.
+/// Reads and returns a molecule from the file. Returns a null pointer if
+/// there was an error reading the file or the file is empty.
 ///
 /// This static convenience method allows for the reading of molecule
 /// from a file without explicitly creating a file object.
-Molecule* MoleculeFile::quickRead(const std::string &fileName)
+boost::shared_ptr<Molecule> MoleculeFile::quickRead(const std::string &fileName)
 {
     MoleculeFile file(fileName);
 
     if(!file.read() || file.isEmpty()){
-        return 0;
+        return boost::shared_ptr<Molecule>();
     }
 
-    Molecule *molecule = file.molecule();
-
-    // remove the molecule from the file so that it does
-    // not get deleted when this function returns
-    file.removeMolecule(molecule);
-
-    return molecule;
+    return file.molecule();
 }
 
 /// Writes \p molecule to the file with \p fileName.
@@ -233,13 +209,13 @@ Molecule* MoleculeFile::quickRead(const std::string &fileName)
 /// to a file without explicitly creating a file object.
 void MoleculeFile::quickWrite(const Molecule *molecule, const std::string &fileName)
 {
-    MoleculeFile file;
-    file.addMolecule(const_cast<Molecule *>(molecule));
-    file.write(fileName);
+    // create a shared_ptr with a null deleter
+    boost::shared_ptr<Molecule> moleculePointer(const_cast<Molecule *>(molecule),
+                                                boost::lambda::_1);
 
-    // remove the molecule from the file so that it does
-    // not get deleted when this function returns
-    file.removeMolecule(const_cast<Molecule *>(molecule));
+    MoleculeFile file;
+    file.addMolecule(moleculePointer);
+    file.write(fileName);
 }
 
 } // end chemkit namespace

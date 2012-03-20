@@ -39,6 +39,7 @@
 #include "graphicspainter.h"
 
 #include <chemkit/atom.h>
+#include <chemkit/foreach.h>
 #include <chemkit/polymer.h>
 #include <chemkit/residue.h>
 #include <chemkit/aminoacid.h>
@@ -130,7 +131,7 @@ void GraphicsProteinItem::setPolymer(const Polymer *polymer)
             QList<AminoAcid *> residues;
             AminoAcid::Conformation conformation = static_cast<AminoAcid *>(chain->residue(0))->conformation();
 
-            for(int i = 0; i < chain->size(); i++){
+            for(size_t i = 0; i < chain->size(); i++){
                 AminoAcid *residue = static_cast<AminoAcid *>(chain->residue(i));
 
                 if(residue->conformation() != conformation){

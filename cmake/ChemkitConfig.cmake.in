@@ -5,10 +5,9 @@
 #   CHEMKIT_LIBRARIES  - list of enabled chemkit libraries
 
 # get file paths
-get_filename_component(CHEMKIT_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-if(EXISTS "${CHEMKIT_CMAKE_DIR}/CMakeCache.txt")
+if(${CHEMKIT_IN_BUILD_TREE})
   # in build tree
-  include("${CHEMKIT_CMAKE_DIR}/ChemkitBuildTreeSettings.cmake")
+  include("${Chemkit_BINARY_DIR}/ChemkitBuildTreeSettings.cmake")
 else()
   # directory where the chemkit header files are installed
   set(CHEMKIT_INCLUDE_DIRS @CMAKE_INSTALL_PREFIX@/include)
@@ -30,9 +29,10 @@ set(CHEMKIT_LIBRARY_DIR @CMAKE_INSTALL_PREFIX@/lib)
 set(CHEMKIT_LIBRARY chemkit)
 set(CHEMKIT_IO_LIBRARY chemkit-io)
 set(CHEMKIT_MD_LIBRARY chemkit-md)
+set(CHEMKIT_MD_IO_LIBRARY chemkit-md-io)
 set(CHEMKIT_WEB_LIBRARY chemkit-web)
 set(CHEMKIT_GRAPHICS_LIBRARY chemkit-graphics)
-set(CHEMKIT_WIDGETS_LIBRARY chemkit-widgets)
+set(CHEMKIT_GUI_LIBRARY chemkit-gui)
 
 # set the CHEMKIT_LIBRARIES variable
 set(CHEMKIT_LIBRARIES ${CHEMKIT_LIBRARY})
@@ -45,6 +45,10 @@ if(${CHEMKIT_USE_MD_LIBRARY})
   set(CHEMKIT_LIBRARIES ${CHEMKIT_LIBRARIES} ${CHEMKIT_MD_LIBRARY})
 endif()
 
+if(${CHEMKIT_USE_MD-IO_LIBRARY})
+  set(CHEMKIT_LIBRARIES ${CHEMKIT_LIBRARIES} ${CHEMKIT_MD_IO_LIBRARY})
+endif()
+
 if(${CHEMKIT_USE_WEB_LIBRARY})
   set(CHEMKIT_LIBRARIES ${CHEMKIT_LIBRARIES} ${CHEMKIT_WEB_LIBRARY})
 endif()
@@ -53,6 +57,6 @@ if(${CHEMKIT_USE_GRAPHICS_LIBRARY})
   set(CHEMKIT_LIBRARIES ${CHEMKIT_LIBRARIES} ${CHEMKIT_GRAPHICS_LIBRARY})
 endif()
 
-if(${CHEMKIT_USE_WIDGETS_LIBRARY})
-  set(CHEMKIT_LIBRARIES ${CHEMKIT_LIBRARIES} ${CHEMKIT_WIDGETS_LIBRARY})
+if(${CHEMKIT_USE_GUI_LIBRARY})
+  set(CHEMKIT_LIBRARIES ${CHEMKIT_LIBRARIES} ${CHEMKIT_GUI_LIBRARY})
 endif()

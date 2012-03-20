@@ -49,13 +49,12 @@ class MoleculeTest : public QObject
         void data();
         void addAtom();
         void addAtomCopy();
+        void removeAtomIf();
+        void atom();
         void addBond();
         void bond();
         void size();
         void isEmpty();
-        void substructure();
-        void mapping();
-        void find();
         void rings();
         void distance();
         void center();

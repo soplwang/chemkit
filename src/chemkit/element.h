@@ -60,9 +60,14 @@ public:
     std::string name() const;
     int period() const;
     Real mass() const;
+    Real exactMass() const;
+    Real ionizationEnergy() const;
+    Real electronAffinity() const;
     Real electronegativity() const;
     Real covalentRadius() const;
     Real vanDerWaalsRadius() const;
+    Real boilingPoint() const;
+    Real meltingPoint() const;
     int expectedValence() const;
     bool isValid() const;
     bool isMetal() const;
@@ -73,10 +78,12 @@ public:
     inline bool operator!=(const Element &element) const;
 
     // static methods
-    static int atomicNumber(const std::string &symbol);
-    static int atomicNumber(const char *symbol);
-    static int atomicNumber(const char *symbol, int length);
-    static int atomicNumber(char symbol);
+    static Element fromName(const std::string &name);
+    static Element fromName(const char *name);
+    static Element fromSymbol(const std::string &symbol);
+    static Element fromSymbol(const char *symbol);
+    static Element fromSymbol(const char *symbol, size_t length);
+    static Element fromSymbol(char symbol);
     static bool isValidAtomicNumber(AtomicNumberType atomicNumber);
     static bool isValidSymbol(const std::string &symbol);
 

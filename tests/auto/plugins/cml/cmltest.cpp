@@ -33,9 +33,9 @@
 **
 ******************************************************************************/
 
-#include "cmltest.h" 
+#include "cmltest.h"
 
-#include <algorithm>
+#include <boost/range/algorithm.hpp>
 
 #include <chemkit/molecule.h>
 #include <chemkit/moleculefile.h>
@@ -48,36 +48,45 @@ const std::string dataPath = "../../../data/";
 
 void CmlTest::initTestCase()
 {
-    std::vector<std::string> formats = chemkit::MoleculeFileFormat::formats();
-    QVERIFY(std::find(formats.begin(), formats.end(), "cml") != formats.end());
+    // verify that the cml plugin registered itself correctly
+    QVERIFY(boost::count(chemkit::MoleculeFileFormat::formats(), "cml") == 1);
 }
 
 void CmlTest::read_data()
 {
-    QTest::addColumn<QString>("fileName");
-    QTest::addColumn<QString>("formula");
+    QTest::addColumn<QString>("fileNameString");
+    QTest::addColumn<QString>("formulaString");
+    QTest::addColumn<int>("atomCount");
+    QTest::addColumn<int>("bondCount");
 
-    QTest::newRow("buckminsterfullerene") << "buckminsterfullerene.cml" << "C60";
-    QTest::newRow("ethanol") << "ethanol.cml" << "C2H6O";
-    QTest::newRow("gaunine") << "guanine.cml" << "C5H5N5O";
-    QTest::newRow("paracetamol") << "paracetamol.cml" << "C8H9NO2";
+    QTest::newRow("buckminsterfullerene") << "buckminsterfullerene.cml" << "C60" << 60 << 90;
+    QTest::newRow("ethanol") << "ethanol.cml" << "C2H6O" << 9 << 8;
+    QTest::newRow("gaunine") << "guanine.cml" << "C5H5N5O" << 16 << 17;
+    QTest::newRow("paracetamol") << "paracetamol.cml" << "C8H9NO2" << 20 << 20;
 }
 
 void CmlTest::read()
 {
-    QFETCH(QString, fileName);
-    QFETCH(QString, formula);
+    QFETCH(QString, fileNameString);
+    QFETCH(QString, formulaString);
+    QFETCH(int, atomCount);
+    QFETCH(int, bondCount);
 
-    chemkit::MoleculeFile file(dataPath + fileName.toStdString());
+    QByteArray fileName = fileNameString.toAscii();
+    QByteArray formula = formulaString.toAscii();
+
+    chemkit::MoleculeFile file(dataPath + fileName.constData());
     bool ok = file.read();
     if(!ok)
         qDebug() << file.errorString().c_str();
     QVERIFY(ok);
 
-    QCOMPARE(file.moleculeCount(), 1);
-    chemkit::Molecule *molecule = file.molecule();
+    QCOMPARE(file.moleculeCount(), size_t(1));
+    const boost::shared_ptr<chemkit::Molecule> &molecule = file.molecule();
     QVERIFY(molecule != 0);
-    QCOMPARE(molecule->formula(), formula.toStdString());
+    QCOMPARE(molecule->formula().c_str(), formula.constData());
+    QCOMPARE(molecule->atomCount(), size_t(atomCount));
+    QCOMPARE(molecule->bondCount(), size_t(bondCount));
     QCOMPARE(molecule->coordinateSetCount(), size_t(1));
     QVERIFY(molecule->coordinateSet(0)->type() == chemkit::CoordinateSet::Cartesian);
 }
@@ -90,8 +99,8 @@ void CmlTest::glucose()
         qDebug() << file.errorString().c_str();
     QVERIFY(ok);
 
-    QCOMPARE(file.moleculeCount(), 1);
-    chemkit::Molecule *molecule = file.molecule();
+    QCOMPARE(file.moleculeCount(), size_t(1));
+    boost::shared_ptr<chemkit::Molecule> molecule = file.molecule();
     QVERIFY(molecule != 0);
     QCOMPARE(molecule->formula(), std::string("C6H12O6"));
 

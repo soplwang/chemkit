@@ -54,6 +54,9 @@ public:
 /// \ingroup chemkit-io
 /// \brief The PolymerFileFormat class represents a polymer file
 ///        format.
+///
+/// A list of supported polymer file formats is available at:
+/// http://wiki.chemkit.org/Features#Polymer_File_Formats
 
 // --- Construction and Destruction ---------------------------------------- //
 /// Creates a new polymer file format with \p name.
@@ -103,7 +106,7 @@ void PolymerFileFormat::setErrorString(const std::string &errorString)
     d->errorString = errorString;
 }
 
-/// Returns a string describing the last error that occured.
+/// Returns a string describing the last error that occurred.
 std::string PolymerFileFormat::errorString() const
 {
     return d->errorString;

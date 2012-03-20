@@ -38,6 +38,8 @@
 
 #include "graphics.h"
 
+#include <boost/shared_ptr.hpp>
+
 #include <chemkit/point3.h>
 
 #include "graphicsray.h"
@@ -60,16 +62,16 @@ class CHEMKIT_GRAPHICS_EXPORT GraphicsView : public QGLWidget
 public:
     // construction and destruction
     GraphicsView(QWidget *parent = 0);
-    GraphicsView(GraphicsScene *scene, QWidget *parent = 0);
+    GraphicsView(const boost::shared_ptr<GraphicsScene> &scene, QWidget *parent = 0);
     ~GraphicsView();
 
     // properties
-    void setScene(GraphicsScene *scene);
-    GraphicsScene* scene() const;
+    void setScene(const boost::shared_ptr<GraphicsScene> &scene);
+    boost::shared_ptr<GraphicsScene> scene() const;
     void setBackgroundColor(const QColor &color);
     QColor backgroundColor() const;
-    void setTool(GraphicsTool *tool);
-    GraphicsTool* tool() const;
+    void setTool(const boost::shared_ptr<GraphicsTool> &tool);
+    boost::shared_ptr<GraphicsTool> tool() const;
     const GraphicsTransform& projectionTransform() const;
     const GraphicsTransform& modelViewTransform() const;
 
@@ -77,12 +79,12 @@ public:
     void addItem(GraphicsItem *item);
     bool removeItem(GraphicsItem *item);
     bool deleteItem(GraphicsItem *item);
-    QList<GraphicsItem *> items() const;
-    int itemCount() const;
+    std::vector<GraphicsItem *> items() const;
+    size_t itemCount() const;
 
     // camera
-    void setCamera(GraphicsCamera *camera);
-    GraphicsCamera* camera() const;
+    void setCamera(const boost::shared_ptr<GraphicsCamera> &camera);
+    boost::shared_ptr<GraphicsCamera> camera() const;
     void setNearClipDistance(float distance);
     float nearClipDistance() const;
     void setFarClipDistance(float distance);
@@ -93,16 +95,19 @@ public:
     float depth(const Point3f &point) const;
 
     // lighting
-    void addLight(GraphicsLight *light);
-    bool removeLight(GraphicsLight *light);
-    bool deleteLight(GraphicsLight *light);
-    QList<GraphicsLight *> lights() const;
-    int lightCount() const;
-    GraphicsLight* light(int index = 0) const;
+    void addLight(const boost::shared_ptr<GraphicsLight> &light);
+    bool removeLight(const boost::shared_ptr<GraphicsLight> &light);
+    std::vector<boost::shared_ptr<GraphicsLight> > lights() const;
+    size_t lightCount() const;
+    boost::shared_ptr<GraphicsLight> light(size_t index = 0) const;
+
+    // fog
+    void setFogEnabled(bool enabled);
+    bool fogEnabled() const;
 
     // selection
     GraphicsItem* itemAt(int x, int y) const;
-    QList<GraphicsItem *> itemsAt(int x, int y, bool sorted = true) const;
+    std::vector<GraphicsItem *> itemsAt(int x, int y, bool sorted = true) const;
 
     // overlay
     GraphicsOverlay* overlay() const;

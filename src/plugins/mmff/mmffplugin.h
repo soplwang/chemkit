@@ -36,14 +36,13 @@
 #ifndef MMFFPLUGIN_H
 #define MMFFPLUGIN_H
 
-#include <QtCore>
+#include <map>
+#include <string>
+
+#include <boost/shared_ptr.hpp>
 
 #include <chemkit/plugin.h>
-#include <chemkit/atomtyper.h>
-#include <chemkit/forcefield.h>
-#include <chemkit/aromaticitymodel.h>
 #include <chemkit/moleculardescriptor.h>
-#include <chemkit/partialchargepredictor.h>
 
 class MmffParametersData;
 
@@ -53,17 +52,14 @@ public:
     MmffPlugin();
     ~MmffPlugin();
 
-    void storeParameters(const QString &name, MmffParametersData *parameters);
-    MmffParametersData* parameters(const QString &name) const;
+    void storeParameters(const std::string &name,
+                         const boost::shared_ptr<MmffParametersData> &parameters);
+    boost::shared_ptr<MmffParametersData> parameters(const std::string &name) const;
 
-    static chemkit::AtomTyper* createMmffAtomTyper();
-    static chemkit::ForceField* createMmffForceField();
-    static chemkit::AromaticityModel* createMmffAromaticityModel();
     static chemkit::MolecularDescriptor* createMmffEnergyDescriptor();
-    static chemkit::PartialChargePredictor* createMmffPartialChargePredictor();
 
 private:
-    QHash<QString, MmffParametersData *> m_parametersCache;
+    std::map<std::string, boost::shared_ptr<MmffParametersData> > m_parametersCache;
 };
 
 #endif // MMFFPLUGIN_H

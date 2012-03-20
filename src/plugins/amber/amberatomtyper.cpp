@@ -50,25 +50,27 @@ AmberAtomTyper::~AmberAtomTyper()
 {
 }
 
-// --- Types --------------------------------------------------------------- //
-chemkit::Variant AmberAtomTyper::type(int index) const
+// --- Properties ---------------------------------------------------------- //
+void AmberAtomTyper::setMolecule(const chemkit::Molecule *molecule)
 {
-    return m_types[index];
+    chemkit::AtomTyper::setMolecule(molecule);
+
+    m_types.resize(molecule->atomCount());
+
+    for(size_t i = 0; i < molecule->size(); i++){
+        m_types[i] = assignType(molecule->atom(i));
+    }
 }
 
+// --- Types --------------------------------------------------------------- //
 chemkit::Variant AmberAtomTyper::type(const chemkit::Atom *atom) const
 {
-    return type(atom->index());
-}
-
-std::string AmberAtomTyper::typeString(int index) const
-{
-    return m_types[index];
+    return m_types[atom->index()];
 }
 
 std::string AmberAtomTyper::typeString(const chemkit::Atom *atom) const
 {
-    return typeString(atom->index());
+    return m_types[atom->index()];
 }
 
 std::string AmberAtomTyper::assignType(const chemkit::Atom *atom) const
@@ -305,13 +307,4 @@ std::string AmberAtomTyper::assignType(const chemkit::Atom *atom) const
     }
 
     return std::string();
-}
-
-void AmberAtomTyper::assignTypes(const chemkit::Molecule *molecule)
-{
-    m_types.resize(molecule->atomCount());
-
-    for(size_t i = 0; i < molecule->size(); i++){
-        m_types[i] = assignType(molecule->atom(i));
-    }
 }

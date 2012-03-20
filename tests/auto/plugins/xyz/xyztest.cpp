@@ -35,7 +35,7 @@
 
 #include "xyztest.h"
 
-#include <algorithm>
+#include <boost/range/algorithm.hpp>
 
 #include <chemkit/molecule.h>
 #include <chemkit/moleculefile.h>
@@ -45,14 +45,14 @@ const std::string dataPath = "../../../data/";
 
 void XyzTest::initTestCase()
 {
-    std::vector<std::string> formats = chemkit::MoleculeFileFormat::formats();
-    QVERIFY(std::find(formats.begin(), formats.end(), "xyz") != formats.end());
+    // verify that the xyz plugin registered itself correctly
+    QVERIFY(boost::count(chemkit::MoleculeFileFormat::formats(), "xyz") == 1);
 }
 
 void XyzTest::read_data()
 {
-    QTest::addColumn<QString>("fileName");
-    QTest::addColumn<QString>("formula");
+    QTest::addColumn<QString>("fileNameString");
+    QTest::addColumn<QString>("formulaString");
 
     QTest::newRow("methane") << "methane.xyz" << "CH4";
     QTest::newRow("benzene") << "benzene.xyz" << "C6H6";
@@ -60,25 +60,28 @@ void XyzTest::read_data()
 
 void XyzTest::read()
 {
-    QFETCH(QString, fileName);
-    QFETCH(QString, formula);
+    QFETCH(QString, fileNameString);
+    QFETCH(QString, formulaString);
 
-    chemkit::MoleculeFile file(dataPath + fileName.toStdString());
+    QByteArray fileName = fileNameString.toAscii();
+    QByteArray formula = formulaString.toAscii();
+
+    chemkit::MoleculeFile file(dataPath + fileName.constData());
     bool ok = file.read();
     if(!ok)
         qDebug() << file.errorString().c_str();
     QVERIFY(ok);
 
-    QCOMPARE(file.moleculeCount(), 1);
-    chemkit::Molecule *molecule = file.molecule();
+    QCOMPARE(file.moleculeCount(), size_t(1));
+    boost::shared_ptr<chemkit::Molecule> molecule = file.molecule();
     QVERIFY(molecule != 0);
-    QCOMPARE(molecule->formula(), formula.toStdString());
+    QCOMPARE(molecule->formula().c_str(), formula.constData());
 }
 
 void XyzTest::readWriteReadLoop_data()
 {
-    QTest::addColumn<QString>("fileName");
-    QTest::addColumn<QString>("formula");
+    QTest::addColumn<QString>("fileNameString");
+    QTest::addColumn<QString>("formulaString");
 
     QTest::newRow("methane") << "methane.xyz" << "CH4";
     QTest::newRow("benzene") << "benzene.xyz" << "C6H6";
@@ -86,21 +89,24 @@ void XyzTest::readWriteReadLoop_data()
 
 void XyzTest::readWriteReadLoop()
 {
-    QFETCH(QString, fileName);
-    QFETCH(QString, formula);
+    QFETCH(QString, fileNameString);
+    QFETCH(QString, formulaString);
+
+    QByteArray fileName = fileNameString.toAscii();
+    QByteArray formula = formulaString.toAscii();
 
     // read file
-    chemkit::MoleculeFile file(dataPath + fileName.toStdString());
+    chemkit::MoleculeFile file(dataPath + fileName.constData());
     bool ok = file.read();
     if(!ok)
         qDebug() << "Failed to read file: " << file.errorString().c_str();
     QVERIFY(ok);
 
     // check molecule
-    QCOMPARE(file.moleculeCount(), 1);
-    chemkit::Molecule *molecule = file.molecule();
+    QCOMPARE(file.moleculeCount(), size_t(1));
+    boost::shared_ptr<chemkit::Molecule> molecule = file.molecule();
     QVERIFY(molecule != 0);
-    QCOMPARE(molecule->formula(), formula.toStdString());
+    QCOMPARE(molecule->formula().c_str(), formula.constData());
 
     // write file
     std::stringstream string;
@@ -119,10 +125,10 @@ void XyzTest::readWriteReadLoop()
     QVERIFY(ok);
 
     // check molecule
-    QCOMPARE(file.moleculeCount(), 1);
+    QCOMPARE(file.moleculeCount(), size_t(1));
     molecule = file.molecule();
     QVERIFY(molecule != 0);
-    QCOMPARE(molecule->formula(), formula.toStdString());
+    QCOMPARE(molecule->formula().c_str(), formula.constData());
 }
 
 QTEST_APPLESS_MAIN(XyzTest)

@@ -36,6 +36,7 @@
 #include "gasteigerpartialchargepredictor.h"
 
 #include <chemkit/atom.h>
+#include <chemkit/foreach.h>
 #include <chemkit/molecule.h>
 
 namespace {
@@ -70,14 +71,11 @@ GasteigerPartialChargePredictor::~GasteigerPartialChargePredictor()
 {
 }
 
-// --- Partial Charges ----------------------------------------------------- //
-chemkit::Real GasteigerPartialChargePredictor::partialCharge(int index) const
+// --- Properties ---------------------------------------------------------- //
+void GasteigerPartialChargePredictor::setMolecule(const chemkit::Molecule *molecule)
 {
-    return m_charges.value(index, 0);
-}
+    chemkit::PartialChargePredictor::setMolecule(molecule);
 
-void GasteigerPartialChargePredictor::assignPartialCharges(const chemkit::Molecule *molecule)
-{
     if(!molecule){
         m_charges.resize(0);
         return;
@@ -149,6 +147,12 @@ void GasteigerPartialChargePredictor::assignPartialCharges(const chemkit::Molecu
             m_electronegativies[i] = pi->a + pi->b * Qi + pi->c * pow(Qi, 2);
         }
     }
+}
+
+// --- Partial Charges ----------------------------------------------------- //
+chemkit::Real GasteigerPartialChargePredictor::partialCharge(const chemkit::Atom *atom) const
+{
+    return m_charges[atom->index()];
 }
 
 // --- Internal Methods ---------------------------------------------------- //

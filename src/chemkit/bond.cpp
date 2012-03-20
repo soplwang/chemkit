@@ -109,13 +109,19 @@ void Bond::setOrder(BondOrderType order)
 {
     m_molecule->d->bondOrders[m_index] = order;
 
-    molecule()->notifyWatchers(this, Molecule::BondOrderChanged);
+    molecule()->notifyWatchers(this, MoleculeWatcher::BondOrderChanged);
 }
 
 /// Returns the bond order.
 Bond::BondOrderType Bond::order() const
 {
     return m_molecule->d->bondOrders[m_index];
+}
+
+/// Returns \c true if the bond order of the bond is \p order.
+bool Bond::is(BondOrderType order) const
+{
+    return this->order() == order;
 }
 
 /// Returns the polarity of the bond. This is calculated as the
@@ -190,6 +196,12 @@ bool Bond::isTerminal() const
 }
 
 // --- Ring Perception ----------------------------------------------------- //
+/// Returns the ring at \p index for the bond.
+Ring* Bond::ring(size_t index) const
+{
+    return rings().advance_begin(index).front();
+}
+
 /// Returns a range containing all of the rings that contain the
 /// bond.
 ///
@@ -295,6 +307,24 @@ Point3 Bond::center() const
 Real Bond::length() const
 {
     return atom1()->distance(atom2());
+}
+
+// --- Stereochemistry ----------------------------------------------------- //
+/// Sets the stereochemistry for the bond.
+void Bond::setStereochemistry(Stereochemistry::Type stereochemistry)
+{
+    m_molecule->stereochemistry()->setStereochemistry(this, stereochemistry);
+}
+
+/// Returns the stereochemistry for the bond.
+Stereochemistry::Type Bond::stereochemistry() const
+{
+    if(!m_molecule->m_stereochemistry){
+        return Stereochemistry::None;
+    }
+    else{
+        return m_molecule->stereochemistry()->stereochemistry(this);
+    }
 }
 
 } // end chemkit namespace

@@ -46,6 +46,7 @@ class BondTest : public QObject
         void atoms();
         void otherAtom();
         void order();
+        void is();
         void molecule();
         void residue();
         void contains();
@@ -53,6 +54,7 @@ class BondTest : public QObject
         void rings();
         void polarity();
         void length();
+        void stereochemistry();
 };
 
 #endif // BONDTEST_H

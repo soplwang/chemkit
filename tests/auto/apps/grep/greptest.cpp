@@ -59,12 +59,13 @@ void GrepTest::ironComposition()
     process.close();
 
     chemkit::MoleculeFile file;
-    bool ok = file.read(output.fileName().toStdString(), "mol2");
+    QByteArray outputFileName = output.fileName().toAscii();
+    bool ok = file.read(outputFileName.constData(), "mol2");
     if(!ok){
         qDebug() << file.errorString().c_str();
     }
     QVERIFY(ok);
-    QCOMPARE(file.moleculeCount(), 2);
+    QCOMPARE(file.moleculeCount(), size_t(2));
     QCOMPARE(file.molecule(0)->name(), std::string("FE2PW3"));
     QCOMPARE(file.molecule(0)->formula(), std::string("FeH6O3"));
     QCOMPARE(file.molecule(1)->name(), std::string("FE3PW3"));
@@ -86,6 +87,12 @@ void GrepTest::benzoicAcid()
     QString output = process.readAllStandardOutput();
     QStringList moleculeNames = output.split("\n", QString::SkipEmptyParts);
     QCOMPARE(moleculeNames.size(), 39);
+
+    // trim whitespace from names
+    for(int i = 0; i < moleculeNames.size(); i++){
+        moleculeNames[i] = moleculeNames[i].trimmed();
+    }
+
     QCOMPARE(moleculeNames[0], QString("2605"));
     QCOMPARE(moleculeNames[1], QString("2541"));
     QCOMPARE(moleculeNames[2], QString("2536"));

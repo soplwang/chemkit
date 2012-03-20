@@ -35,6 +35,7 @@
 
 #include "graphicscylinder.h"
 
+#include <chemkit/foreach.h>
 #include <chemkit/constants.h>
 
 #include "graphicsray.h"
@@ -142,7 +143,7 @@ GraphicsVertexBuffer* GraphicsCylinder::tesselate(int slices, int stacks) const
         normals.append(normal);
     }
 
-    QVector<unsigned short> indicies;
+    QVector<unsigned short> indices;
     for(int i = 0; i < stacks; i++){
         for(int j = 0; j < slices; j++){
             // triangle indices
@@ -153,17 +154,17 @@ GraphicsVertexBuffer* GraphicsCylinder::tesselate(int slices, int stacks) const
             i1 = i * slices + ((j + 1) % slices);
             i2 = (i+1) * slices + j;
 
-            indicies.append(i0);
-            indicies.append(i1);
-            indicies.append(i2);
+            indices.append(i0);
+            indices.append(i1);
+            indices.append(i2);
 
             // second triangle
             i0 = i1;
             i1 = (i+1)*slices + ((j + 1) % slices);
 
-            indicies.append(i0);
-            indicies.append(i1);
-            indicies.append(i2);
+            indices.append(i0);
+            indices.append(i1);
+            indices.append(i2);
         }
     }
 
@@ -171,7 +172,7 @@ GraphicsVertexBuffer* GraphicsCylinder::tesselate(int slices, int stacks) const
 
     buffer->setVerticies(verticies);
     buffer->setNormals(normals);
-    buffer->setIndicies(indicies);
+    buffer->setIndicies(indices);
 
     return buffer;
 }

@@ -91,7 +91,7 @@ std::string PolymerChain::name() const
 }
 
 /// Returns the number of residues in the chain.
-int PolymerChain::size() const
+size_t PolymerChain::size() const
 {
     return residueCount();
 }
@@ -130,15 +130,27 @@ void PolymerChain::prependResidue(Residue *residue)
 /// Adds a residue at \p index of the chain.
 ///
 /// The polymer chain takes ownership of the residue.
-void PolymerChain::insertResidue(int index, Residue *residue)
+void PolymerChain::insertResidue(size_t index, Residue *residue)
 {
     d->residues.insert(d->residues.begin() + index, residue);
+}
+
+/// Removes the residue from the chain and deletes it.
+bool PolymerChain::removeResidue(Residue *residue)
+{
+    bool found = takeResidue(residue);
+
+    if(found){
+        delete residue;
+    }
+
+    return found;
 }
 
 /// Removes the residue from the chain.
 ///
 /// The ownership of the residue is passed to the caller.
-bool PolymerChain::removeResidue(Residue *residue)
+bool PolymerChain::takeResidue(Residue *residue)
 {
     std::vector<Residue *>::iterator location = std::find(d->residues.begin(), d->residues.end(), residue);
     if(location == d->residues.end()){
@@ -149,20 +161,8 @@ bool PolymerChain::removeResidue(Residue *residue)
     return true;
 }
 
-/// Removes the residue from the chain and deletes it.
-bool PolymerChain::deleteResidue(Residue *residue)
-{
-    bool found = removeResidue(residue);
-
-    if(found){
-        delete residue;
-    }
-
-    return found;
-}
-
 /// Returns the residue at \p index in the chain.
-Residue* PolymerChain::residue(int index) const
+Residue* PolymerChain::residue(size_t index) const
 {
     return d->residues[index];
 }
@@ -174,7 +174,7 @@ std::vector<Residue *> PolymerChain::residues() const
 }
 
 /// Returns the number of residues in the chain.
-int PolymerChain::residueCount() const
+size_t PolymerChain::residueCount() const
 {
     return d->residues.size();
 }
@@ -182,7 +182,7 @@ int PolymerChain::residueCount() const
 /// Returns the index of \p residue in the chain.
 int PolymerChain::indexOf(const Residue *residue) const
 {
-    unsigned int index = std::distance(d->residues.begin(), std::find(d->residues.begin(), d->residues.end(), residue));
+    size_t index = std::distance(d->residues.begin(), std::find(d->residues.begin(), d->residues.end(), residue));
     if(index == d->residues.size()){
         return -1;
     }

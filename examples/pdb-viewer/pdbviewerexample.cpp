@@ -62,7 +62,6 @@ PdbViewerWindow::PdbViewerWindow(QWidget *parent)
     // setup view
     m_view = new chemkit::GraphicsView;
     setCentralWidget(m_view);
-    m_view->setTool(new chemkit::GraphicsNavigationTool);
 
     m_proteinItem = new chemkit::GraphicsProteinItem;
     m_view->addItem(m_proteinItem);
@@ -89,11 +88,11 @@ void PdbViewerWindow::setFile(chemkit::PolymerFile *file)
     m_file = file;
 
     if(file){
-        chemkit::Polymer *polymer = file->polymer();
+        const boost::shared_ptr<chemkit::Polymer> &polymer = file->polymer();
 
         if(polymer){
-            m_proteinItem->setPolymer(polymer);
-            m_nucleicAcidItem->setPolymer(polymer);
+            m_proteinItem->setPolymer(polymer.get());
+            m_nucleicAcidItem->setPolymer(polymer.get());
             m_view->camera()->lookAt(polymer->center().cast<float>());
         }
     }
@@ -119,14 +118,16 @@ void PdbViewerWindow::openFile(const QString &fileName)
     // close current file
     setFile(0);
 
-    std::string format = QFileInfo(fileName).suffix().toStdString();
+    QByteArray formatString = QFileInfo(fileName).suffix().toAscii();
+    std::string format = formatString.constData();
     if(format == "xml")
         format = "pdbml";
 
     // open and read file
     chemkit::PolymerFile *file = new chemkit::PolymerFile;
 
-    bool ok = file->read(fileName.toStdString(), format);
+    QByteArray fileNameString = fileName.toAscii();
+    bool ok = file->read(fileNameString.constData(), format);
     if(!ok){
         QMessageBox::critical(this, "Error Reading File", file->errorString().c_str());
         delete file;

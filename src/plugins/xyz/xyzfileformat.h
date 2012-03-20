@@ -36,17 +36,15 @@
 #ifndef XYZFILEFORMAT_H
 #define XYZFILEFORMAT_H
 
-#include <chemkit/molecule.h>
 #include <chemkit/moleculefileformat.h>
 
 class XyzFileFormat : public chemkit::MoleculeFileFormat
 {
 public:
     XyzFileFormat();
-    ~XyzFileFormat();
 
-    bool read(std::istream &input, chemkit::MoleculeFile *file);
-    bool write(const chemkit::MoleculeFile *file, std::ostream &output);
+    bool read(std::istream &input, chemkit::MoleculeFile *file) CHEMKIT_OVERRIDE;
+    bool write(const chemkit::MoleculeFile *file, std::ostream &output) CHEMKIT_OVERRIDE;
 };
 
 #endif // XYZFILEFORMAT_H

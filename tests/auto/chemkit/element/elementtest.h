@@ -52,6 +52,8 @@ class ElementTest : public QObject
         void vanDerWaalsRadius();
         void expectedValence();
         void isMetal();
+        void fromName();
+        void fromSymbol();
         void isValidAtomicNumber();
         void isValidSymbol();
 };

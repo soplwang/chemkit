@@ -47,6 +47,8 @@
 #include <chemkit/forcefield.h>
 #include <chemkit/lineformat.h>
 #include <chemkit/moleculefile.h>
+#include <chemkit/coordinatepredictor.h>
+#include <chemkit/moleculegeometryoptimizer.h>
 
 void printHelp(char *argv[], const boost::program_options::options_description &options)
 {
@@ -56,39 +58,6 @@ void printHelp(char *argv[], const boost::program_options::options_description &
     std::cout << "\n";
     std::cout << "Options:\n";
     std::cout << options << "\n";
-}
-
-// Generate initial 3D coordinates
-void gen3d(chemkit::Molecule *molecule)
-{
-    foreach(chemkit::Atom *atom, molecule->atoms()){
-        atom->setPosition(molecule->size() * chemkit::Point3::Random().normalized());
-    }
-}
-
-// Optimize the 3D coordinates using the uff force field
-void optimizeGeometry(chemkit::Molecule *molecule)
-{
-    boost::scoped_ptr<chemkit::ForceField> forceField(chemkit::ForceField::create("uff"));
-    if(!forceField){
-        return;
-    }
-
-    forceField->setMolecule(molecule);
-
-    bool ok = forceField->setup();
-    if(!ok){
-        return;
-    }
-
-    bool converged = false;
-    size_t maxSteps = 500;
-
-    while(!converged && maxSteps--){
-        converged = forceField->minimizationStep(1);
-    }
-
-    forceField->writeCoordinates(molecule);
 }
 
 int main(int argc, char *argv[])
@@ -142,7 +111,10 @@ int main(int argc, char *argv[])
     }
 
     // check input format
-    inputFormatName = "smiles";
+    if(inputFormatName.empty()){
+        // default to smiles if not format specified
+        inputFormatName = "smiles";
+    }
 
     // create input line format
     boost::scoped_ptr<chemkit::LineFormat> inputFormat(chemkit::LineFormat::create(inputFormatName));
@@ -158,17 +130,17 @@ int main(int argc, char *argv[])
     }
 
     // read input formula
-    chemkit::Molecule *molecule = inputFormat->read(inputFormula);
+    boost::shared_ptr<chemkit::Molecule> molecule(inputFormat->read(inputFormula));
     if(!molecule){
         std::cerr << "Failed to parse formula: " << inputFormat->errorString() << std::endl;
         return -1;
     }
 
     // generate 3d coordinates
-    gen3d(molecule);
+    chemkit::CoordinatePredictor::predictCoordinates(molecule.get());
 
-    // optimize coordinates
-    optimizeGeometry(molecule);
+    // optimize 3d coordinates
+    chemkit::MoleculeGeometryOptimizer::optimizeCoordinates(molecule.get());
 
     // set center to origin
     molecule->setCenter(0, 0, 0);

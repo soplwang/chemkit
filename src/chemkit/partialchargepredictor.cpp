@@ -55,6 +55,9 @@ public:
 /// \ingroup chemkit
 /// \brief The PartialChargePredictor class provides a generic
 ///        interface to partial charge prediction algorithms.
+///
+/// A list of supported partial charge predictors is available at:
+/// http://wiki.chemkit.org/Features#Partial_Charge_Predictors
 
 // --- Construction and Destruction ---------------------------------------- //
 PartialChargePredictor::PartialChargePredictor(const std::string &name)
@@ -81,8 +84,6 @@ std::string PartialChargePredictor::name() const
 void PartialChargePredictor::setMolecule(const Molecule *molecule)
 {
     d->molecule = molecule;
-
-    assignPartialCharges(molecule);
 }
 
 /// Returns the molecule for the predictor.
@@ -92,23 +93,12 @@ const Molecule* PartialChargePredictor::molecule() const
 }
 
 // --- Partial Charges ----------------------------------------------------- //
-/// Returns the partial charge for the atom at \p index.
-Real PartialChargePredictor::partialCharge(int index) const
-{
-    CHEMKIT_UNUSED(index);
-
-    return 0;
-}
-
 /// Returns the partial charge for \p atom.
 Real PartialChargePredictor::partialCharge(const Atom *atom) const
 {
-    return partialCharge(atom->index());
-}
+    CHEMKIT_UNUSED(atom);
 
-void PartialChargePredictor::assignPartialCharges(const Molecule *molecule)
-{
-    CHEMKIT_UNUSED(molecule);
+    return 0;
 }
 
 // --- Static Methods ------------------------------------------------------ //

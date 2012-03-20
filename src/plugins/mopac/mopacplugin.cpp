@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2009-2011 Kyle Lutz <kyle.r.lutz@gmail.com>
+** Copyright (C) 2009-2012 Kyle Lutz <kyle.r.lutz@gmail.com>
 ** All rights reserved.
 **
 ** This file is a part of the chemkit project. For more information
@@ -33,32 +33,20 @@
 **
 ******************************************************************************/
 
-#include "mopacplugin.h"
+#include <chemkit/plugin.h>
 
 #include "mopinfileformat.h"
 #include "mopcrtfileformat.h"
 
-MopacPlugin::MopacPlugin()
-    : chemkit::Plugin("mopac")
+class MopacPlugin : public chemkit::Plugin
 {
-    registerPluginClass<chemkit::MoleculeFileFormat>("mopin", createMopinFormat);
-    registerPluginClass<chemkit::MoleculeFileFormat>("mopcrt", createMopcrtFormat);
-}
-
-MopacPlugin::~MopacPlugin()
-{
-    unregisterPluginClass<chemkit::MoleculeFileFormat>("mopin");
-    unregisterPluginClass<chemkit::MoleculeFileFormat>("mopcrt");
-}
-
-chemkit::MoleculeFileFormat* MopacPlugin::createMopinFormat()
-{
-    return new MopinFileFormat;
-}
-
-chemkit::MoleculeFileFormat* MopacPlugin::createMopcrtFormat()
-{
-    return new MopcrtFileFormat;
-}
+public:
+    MopacPlugin()
+        : chemkit::Plugin("mopac")
+    {
+        CHEMKIT_REGISTER_MOLECULE_FILE_FORMAT("mopin", MopinFileFormat);
+        CHEMKIT_REGISTER_MOLECULE_FILE_FORMAT("mopcrt", MopcrtFileFormat);
+    }
+};
 
 CHEMKIT_EXPORT_PLUGIN(mopac, MopacPlugin)

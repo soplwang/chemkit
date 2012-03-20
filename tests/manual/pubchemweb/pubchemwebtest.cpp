@@ -47,8 +47,8 @@ void PubChemWebTest::downloadFile()
     chemkit::MoleculeFile *file = pubchem.downloadFile("5950");
     QVERIFY(file != 0);
 
-    QCOMPARE(file->moleculeCount(), 1);
-    chemkit::Molecule *molecule = file->molecule();
+    QCOMPARE(file->moleculeCount(), size_t(1));
+    boost::shared_ptr<chemkit::Molecule> molecule = file->molecule();
     QCOMPARE(molecule->formula(), std::string("C3H7NO2"));
 
     delete file;
@@ -64,12 +64,13 @@ void PubChemWebTest::downloadMultiFile()
     chemkit::MoleculeFile *file = pubchem.downloadFile(ids);
     QVERIFY(file != 0);
 
-    QCOMPARE(file->moleculeCount(), 6);
+    QCOMPARE(file->moleculeCount(), size_t(6));
 
     for(int i = 0; i < ids.size(); i++){
-        chemkit::Molecule *molecule = file->molecule(i);
+        boost::shared_ptr<chemkit::Molecule> molecule = file->molecule(i);
         QVERIFY(molecule != 0);
-        QCOMPARE(molecule->name(), ids[i].toStdString());
+        QByteArray id = ids[i].toAscii();
+        QCOMPARE(molecule->name().c_str(), id.constData());
     }
 
     delete file;

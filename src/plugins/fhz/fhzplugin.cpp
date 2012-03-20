@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2009-2011 Kyle Lutz <kyle.r.lutz@gmail.com>
+** Copyright (C) 2009-2012 Kyle Lutz <kyle.r.lutz@gmail.com>
 ** All rights reserved.
 **
 ** This file is a part of the chemkit project. For more information
@@ -33,26 +33,19 @@
 **
 ******************************************************************************/
 
-#include "fhzplugin.h"
+#include <chemkit/plugin.h>
 
 #include "fhzfileformat.h"
 
-FhzPlugin::FhzPlugin()
-    : chemkit::Plugin("fhz")
+class FhzPlugin : public chemkit::Plugin
 {
-    registerPluginClass<chemkit::MoleculeFileFormat>("fh", createFhzFormat);
-    registerPluginClass<chemkit::MoleculeFileFormat>("fhz", createFhzFormat);
-}
-
-FhzPlugin::~FhzPlugin()
-{
-    unregisterPluginClass<chemkit::MoleculeFileFormat>("fh");
-    unregisterPluginClass<chemkit::MoleculeFileFormat>("fhz");
-}
-
-chemkit::MoleculeFileFormat* FhzPlugin::createFhzFormat()
-{
-    return new FhzFileFormat;
-}
+public:
+    FhzPlugin()
+        : chemkit::Plugin("fhz")
+    {
+        CHEMKIT_REGISTER_MOLECULE_FILE_FORMAT("fh", FhzFileFormat);
+        CHEMKIT_REGISTER_MOLECULE_FILE_FORMAT("fhz", FhzFileFormat);
+    }
+};
 
 CHEMKIT_EXPORT_PLUGIN(fhz, FhzPlugin)

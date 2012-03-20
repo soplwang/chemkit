@@ -35,25 +35,25 @@
 
 #include "graphdescriptorstest.h"
 
-#include <algorithm>
+#include <boost/range/algorithm.hpp>
 
 #include <chemkit/molecule.h>
 #include <chemkit/moleculardescriptor.h>
 
 void GraphDescriptorsTest::initTestCase()
 {
-    std::vector<std::string> descriptors = chemkit::MolecularDescriptor::descriptors();
-    QVERIFY(std::find(descriptors.begin(), descriptors.end(), "graph-density") != descriptors.end());
-    QVERIFY(std::find(descriptors.begin(), descriptors.end(), "graph-diameter") != descriptors.end());
-    QVERIFY(std::find(descriptors.begin(), descriptors.end(), "graph-order") != descriptors.end());
-    QVERIFY(std::find(descriptors.begin(), descriptors.end(), "graph-radius") != descriptors.end());
-    QVERIFY(std::find(descriptors.begin(), descriptors.end(), "graph-size") != descriptors.end());
+    // verify that the graphdescriptors plugin registered itself correctly
+    QVERIFY(boost::count(chemkit::MolecularDescriptor::descriptors(), "graph-density") == 1);
+    QVERIFY(boost::count(chemkit::MolecularDescriptor::descriptors(), "graph-diameter") == 1);
+    QVERIFY(boost::count(chemkit::MolecularDescriptor::descriptors(), "graph-order") == 1);
+    QVERIFY(boost::count(chemkit::MolecularDescriptor::descriptors(), "graph-radius") == 1);
+    QVERIFY(boost::count(chemkit::MolecularDescriptor::descriptors(), "graph-size") == 1);
 }
 
 void GraphDescriptorsTest::test_data()
 {
-    QTest::addColumn<QString>("smiles");
-    QTest::addColumn<QString>("formula");
+    QTest::addColumn<QString>("smilesString");
+    QTest::addColumn<QString>("formulaString");
     QTest::addColumn<double>("graphDensity");
     QTest::addColumn<int>("graphDiameter");
     QTest::addColumn<int>("graphOrder");
@@ -72,16 +72,19 @@ void GraphDescriptorsTest::test_data()
 
 void GraphDescriptorsTest::test()
 {
-    QFETCH(QString, smiles);
-    QFETCH(QString, formula);
+    QFETCH(QString, smilesString);
+    QFETCH(QString, formulaString);
     QFETCH(double, graphDensity);
     QFETCH(int, graphDiameter);
     QFETCH(int, graphOrder);
     QFETCH(int, graphRadius);
     QFETCH(int, graphSize);
 
-    chemkit::Molecule molecule(smiles.toStdString(), "smiles");
-    QCOMPARE(molecule.formula(), formula.toStdString());
+    QByteArray smiles = smilesString.toAscii();
+    QByteArray formula = formulaString.toAscii();
+
+    chemkit::Molecule molecule(smiles.constData(), "smiles");
+    QCOMPARE(molecule.formula().c_str(), formula.constData());
     QCOMPARE(qRound(molecule.descriptor("graph-density").toDouble() * 100.0), qRound(graphDensity * 100.0));
     QCOMPARE(molecule.descriptor("graph-diameter").toInt(), graphDiameter);
     QCOMPARE(molecule.descriptor("graph-order").toInt(), graphOrder);

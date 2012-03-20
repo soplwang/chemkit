@@ -41,6 +41,7 @@
 #include <string>
 #include <vector>
 
+#include "plugin.h"
 #include "variant.h"
 
 namespace chemkit {
@@ -51,9 +52,6 @@ class MolecularDescriptorPrivate;
 class CHEMKIT_EXPORT MolecularDescriptor
 {
 public:
-    // typedefs
-    typedef MolecularDescriptor* (*CreateFunction)();
-
     // construction and destruction
     virtual ~MolecularDescriptor();
 
@@ -75,5 +73,9 @@ private:
 };
 
 } // end chemkit namespace
+
+/// Registers a molecular descriptor with \p name.
+#define CHEMKIT_REGISTER_MOLECULAR_DESCRIPTOR(name, className) \
+    CHEMKIT_REGISTER_PLUGIN_CLASS(name, chemkit::MolecularDescriptor, className)
 
 #endif // CHEMKIT_MOLECULARDESCRIPTOR_H
