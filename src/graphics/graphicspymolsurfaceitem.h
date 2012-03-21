@@ -39,9 +39,10 @@
 #include "graphics.h"
 
 #include <boost/shared_ptr.hpp>
-#include <chemkit/atomcolormap.h>
 
 #include "graphicsitem.h"
+
+#include <chemkit/atomcolormap.h>
 
 namespace chemkit {
 

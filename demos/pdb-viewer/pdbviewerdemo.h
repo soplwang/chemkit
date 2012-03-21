@@ -33,67 +33,43 @@
 **
 ******************************************************************************/
 
-#ifndef BUILDTOOL_H
-#define BUILDTOOL_H
+#ifndef PDBVIEWERDEMO_H
+#define PDBVIEWERDEMO_H
 
-#include "buildertool.h"
+#include <QtGui>
 
-class BuildTool : public QObject, public BuilderTool
+#include <chemkit/polymerfile.h>
+#include <chemkit/graphicsview.h>
+#include <chemkit/graphicsproteinitem.h>
+#include <chemkit/graphicsmoleculeitem.h>
+#include <chemkit/graphicsnucleicaciditem.h>
+
+namespace Ui
+{
+    class PdbViewerWindow;
+}
+
+class PdbViewerWindow : public QMainWindow
 {
     Q_OBJECT
 
-public:
-    // construction and destruction
-    BuildTool(BuilderWindow *builder);
-    ~BuildTool();
+    public:
+        PdbViewerWindow(QWidget *parent = 0);
+        ~PdbViewerWindow();
 
-    // properties
-    void setElement(const chemkit::Element &element);
-    chemkit::Element element() const;
-    void setBondOrder(int bondOrder);
-    int bondOrder() const;
+        void setFile(chemkit::PolymerFile *file);
 
-    // settings
-    virtual QWidget* settingsWidget();
+    public slots:
+        void openFile();
+        void openFile(const QString &fileName);
+        void quit();
 
-    // events
-    virtual void mousePressEvent(QMouseEvent *event);
-    virtual void mouseReleaseEvent(QMouseEvent *event);
-    virtual void mouseMoveEvent(QMouseEvent *event);
-
-
-private slots:
-    void elementSelectorChanged(int index);
-    void bondOrderSelectorChanged(int index);
-    void addHydrogensChanged(int state);
-
-private:
-    void beginMoleculeEdit();
-    void endMoleculeEdit();
-    chemkit::Atom* addAtom(int atomicNumber);
-    void removeAtom(chemkit::Atom *atom);
-    void setAtomAtomicNumber(chemkit::Atom *atom, int atomicNumber);
-    void setAtomPosition(chemkit::Atom *atom, const chemkit::Point3 &position);
-    chemkit::Bond* addBond(chemkit::Atom *a, chemkit::Atom *b, int order = 1);
-    void removeBond(chemkit::Bond *bond);
-    void setBondOrder(chemkit::Bond *bond, int order);
-    void adjustHydrogens(chemkit::Atom *atom);
-
-private:
-    chemkit::Element m_element;
-    int m_bondOrder;
-    int m_intialElement;
-    bool m_adjustHydrogens;
-    QList<int> m_elements;
-    QList<int> m_addedElements;
-    chemkit::Atom *m_intialAtom;
-    chemkit::Atom *m_movingAtom;
-    chemkit::Atom *m_bondingAtom;
-    chemkit::Bond *m_newBond;
-    QComboBox *m_elementSelector;
-    QComboBox *m_bondOrderSelector;
-    QCheckBox *m_addHydrogensCheckBox;
-    QSet<chemkit::Atom *> m_modifiedAtoms;
+    private:
+        Ui::PdbViewerWindow *ui;
+        chemkit::GraphicsView *m_view;
+        chemkit::PolymerFile *m_file;
+        chemkit::GraphicsProteinItem *m_proteinItem;
+        chemkit::GraphicsNucleicAcidItem *m_nucleicAcidItem;
 };
 
-#endif // BUILDTOOL_H
+#endif // PDBVIEWERDEMO_H

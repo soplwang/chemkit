@@ -52,7 +52,7 @@ const float s = sqrt(1 + GoldenRatio*GoldenRatio);
 const float t = GoldenRatio / s;
 const float one = 1 / s;
 
-const float IcosahedronVerticies[] = {
+const float IcosahedronVertices[] = {
     t, one, 0,
     -t, one, 0,
     t, -one, 0,
@@ -69,7 +69,7 @@ const float IcosahedronVerticies[] = {
 
 const int IcosahedronVertexCount = 12;
 
-const unsigned int IcosahedronIndicies[] = {
+const unsigned int IcosahedronIndices[] = {
     0, 8, 4, 1, 10, 7, 2, 9, 11, 7, 3, 1, 0, 5, 10,
     3, 9, 6, 3, 11, 9, 8, 6, 4, 2, 4, 9, 3, 7, 11,
     4, 2, 0, 9, 4, 6, 2, 11, 5, 0, 10, 8, 5, 0, 2,
@@ -129,25 +129,25 @@ bool GraphicsSphere::intersects(const GraphicsRay &ray, float *distance) const
 // --- Tesselation --------------------------------------------------------- //
 GraphicsVertexBuffer* GraphicsSphere::tesselate(int subdivisions) const
 {
-    // setup initial verticies
-    QVector<Point3f> verticies(IcosahedronVertexCount);
+    // setup initial vertices
+    QVector<Point3f> vertices(IcosahedronVertexCount);
     for(int i = 0; i < IcosahedronVertexCount; i++){
-        const float *v = &IcosahedronVerticies[i*3];
+        const float *v = &IcosahedronVertices[i*3];
         Point3f point(v[0], v[1], v[2]);
         point *= radius() / point.norm();
-        verticies[i] = point;
+        vertices[i] = point;
     }
 
     // set up initial triangle indices
     QVector<unsigned short> indices(IcosahedronIndexCount);
     for(int i = 0; i < IcosahedronIndexCount; i++){
-        indices[i] = IcosahedronIndicies[i];
+        indices[i] = IcosahedronIndices[i];
     }
 
     // subdivide
     int subdivisionCount = 0;
     while(subdivisionCount < subdivisions){
-        QVector<unsigned short> subdivisionIndicies;
+        QVector<unsigned short> subdivisionIndices;
 
         for(int i = 0; i < indices.size() / 3; i++){
             // indices of current triangle
@@ -155,12 +155,12 @@ GraphicsVertexBuffer* GraphicsSphere::tesselate(int subdivisions) const
             int i1 = indices[i*3+1];
             int i2 = indices[i*3+2];
 
-            // verticies of the current triangle
-            Point3f v0 = verticies[i0];
-            Point3f v1 = verticies[i1];
-            Point3f v2 = verticies[i2];
+            // vertices of the current triangle
+            Point3f v0 = vertices[i0];
+            Point3f v1 = vertices[i1];
+            Point3f v2 = vertices[i2];
 
-            // add three new verticies
+            // add three new vertices
             Point3f v01 = chemkit::geometry::midpoint(v0.cast<Real>(), v1.cast<Real>()).cast<float>();
             Point3f v12 = chemkit::geometry::midpoint(v1.cast<Real>(), v2.cast<Real>()).cast<float>();
             Point3f v20 = chemkit::geometry::midpoint(v2.cast<Real>(), v0.cast<Real>()).cast<float>();
@@ -170,52 +170,52 @@ GraphicsVertexBuffer* GraphicsSphere::tesselate(int subdivisions) const
             v12 *= radius() / v12.norm();
             v20 *= radius() / v20.norm();
 
-            // add verticies and record their indices
-            int i01 = verticies.size();
-            verticies.append(v01);
-            int i12 = verticies.size();
-            verticies.append(v12);
-            int i20 = verticies.size();
-            verticies.append(v20);
+            // add vertices and record their indices
+            int i01 = vertices.size();
+            vertices.append(v01);
+            int i12 = vertices.size();
+            vertices.append(v12);
+            int i20 = vertices.size();
+            vertices.append(v20);
 
             // add triangle (i0, i01, i20)
-            subdivisionIndicies.append(i0);
-            subdivisionIndicies.append(i01);
-            subdivisionIndicies.append(i20);
+            subdivisionIndices.append(i0);
+            subdivisionIndices.append(i01);
+            subdivisionIndices.append(i20);
 
             // add triangle (i01, i12, i20)
-            subdivisionIndicies.append(i01);
-            subdivisionIndicies.append(i12);
-            subdivisionIndicies.append(i20);
+            subdivisionIndices.append(i01);
+            subdivisionIndices.append(i12);
+            subdivisionIndices.append(i20);
 
             // add triangle (i01, i1, i12)
-            subdivisionIndicies.append(i01);
-            subdivisionIndicies.append(i1);
-            subdivisionIndicies.append(i12);
+            subdivisionIndices.append(i01);
+            subdivisionIndices.append(i1);
+            subdivisionIndices.append(i12);
 
             // add triangle (i20, i12, i2)
-            subdivisionIndicies.append(i20);
-            subdivisionIndicies.append(i12);
-            subdivisionIndicies.append(i2);
+            subdivisionIndices.append(i20);
+            subdivisionIndices.append(i12);
+            subdivisionIndices.append(i2);
         }
 
-        indices = subdivisionIndicies;
+        indices = subdivisionIndices;
 
         subdivisionCount++;
     }
 
     // calculate vertex normals
     QVector<Vector3f> normals;
-    foreach(const Point3f &vertex, verticies){
+    foreach(const Point3f &vertex, vertices){
         normals.append(vertex.normalized());
     }
 
     // create vertex buffer
     GraphicsVertexBuffer *buffer = new GraphicsVertexBuffer;
 
-    buffer->setVerticies(verticies);
+    buffer->setVertices(vertices);
     buffer->setNormals(normals);
-    buffer->setIndicies(indices);
+    buffer->setIndices(indices);
 
     return buffer;
 }

@@ -38,6 +38,8 @@
 #include <algorithm>
 #include <boost/make_shared.hpp>
 
+#include <boost/make_shared.hpp>
+
 #include <chemkit/atom.h>
 #include <chemkit/element.h>
 #include <chemkit/foreach.h>
@@ -101,31 +103,31 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
                                         -3.0F, 0.2F, 2.0F);
 
         if (job && SurfaceJobRun(_ctx_holder.ctx, job)) {
-            QVector<Point3f> verticies;
+            QVector<Point3f> vertices;
             QVector<Vector3f> normals;
-            QVector<unsigned short> indicies;
+            QVector<unsigned short> indices;
 
-            verticies.reserve(job->N);
+            vertices.reserve(job->N);
             normals.reserve(job->N);
             for (float *vp = job->V, *np = job->VN, *e = (job->V + job->N*3); vp < e; vp+=3, np+=3) {
-                verticies.push_back(Point3f(vp[0], vp[1], vp[2]));
+                vertices.push_back(Point3f(vp[0], vp[1], vp[2]));
                 normals.push_back(Point3f(np[0], np[1], np[2]));
             }
 
             if (surface_type != 1) {
-                indicies.reserve(job->NT*3);
+                indices.reserve(job->NT*3);
 
                 for (int *tp = job->T, *e = (job->T + job->NT*3); tp < e; tp++) {
-                    indicies.push_back(static_cast<unsigned short>(*tp));
+                    indices.push_back(static_cast<unsigned short>(*tp));
                 }
             }
 
             // create vertex buffer
             GraphicsVertexBuffer *buffer = new GraphicsVertexBuffer;
 
-            buffer->setVerticies(verticies);
+            buffer->setVertices(vertices);
             buffer->setNormals(normals);
-            buffer->setIndicies(indicies);
+            buffer->setIndices(indices);
 
             // apply colors
             if(!atomTypes.empty()) {
