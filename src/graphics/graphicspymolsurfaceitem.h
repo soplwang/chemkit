@@ -82,7 +82,8 @@ public:
 
     enum ColorMode {
         SolidColor,
-        AtomColor
+        AtomColor,
+        ElectrostaticPotential
     };
 
     // construction and destruction
