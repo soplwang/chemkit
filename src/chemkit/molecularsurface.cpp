@@ -39,12 +39,16 @@
 
 #include "molecularsurface.h"
 
+#include <boost/bind.hpp>
+#include <boost/thread.hpp>
+
 #include "atom.h"
 #include "foreach.h"
 #include "vector3.h"
 #include "geometry.h"
 #include "molecule.h"
 #include "alphashape.h"
+#include "concurrent.h"
 #include "delaunaytriangulation.h"
 
 namespace chemkit {
@@ -89,19 +93,19 @@ public:
 ///         surface.
 ///
 /// The following example shows how to calculate the solvent
-/// accessible surface area of a Protein.
+/// accessible surface area of a molecule.
 /// \code
-/// // create the surface object using the protein molecule
-/// chemkit::MolecularSurface surface(protein->molecule());
+/// // create the surface object for the molecule
+/// MolecularSurface surface(molecule);
 ///
 /// // set the surface type to solvent accessible
-/// surface.setSurfaceType(chemkit::MolecularSurface::SolventAccessible);
+/// surface.setSurfaceType(MolecularSurface::SolventAccessible);
 ///
 /// // set the solvent probe radius to 1.4 angstroms
 /// surface.setProbeRadius(1.4);
 ///
 /// // calculate the surface area
-/// chemkit::Float area = surface.surfaceArea();
+/// double area = surface.surfaceArea();
 /// \endcode
 
 /// \enum MolecularSurface::SurfaceType
@@ -268,6 +272,15 @@ Real MolecularSurface::volume() const
     return d->volume;
 }
 
+/// Runs the volume() method asynchronously and returns a future
+/// containing the result.
+///
+/// \internal
+boost::shared_future<Real> MolecularSurface::volumeAsync() const
+{
+    return chemkit::concurrent::run(boost::bind(&MolecularSurface::volume, this));
+}
+
 /// Returns the total surface area of the surface. The returned
 /// area is in Angstroms squared (\f$ \AA^{2} \f$).
 Real MolecularSurface::surfaceArea() const
@@ -303,6 +316,15 @@ Real MolecularSurface::surfaceArea() const
     }
 
     return d->surfaceArea;
+}
+
+/// Runs the surfaceArea() method asynchronously and returns a future
+/// containing the result.
+///
+/// \internal
+boost::shared_future<Real> MolecularSurface::surfaceAreaAsync() const
+{
+    return chemkit::concurrent::run(boost::bind(&MolecularSurface::surfaceArea, this));
 }
 
 // --- Internal Methods ---------------------------------------------------- //

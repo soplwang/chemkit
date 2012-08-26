@@ -437,6 +437,10 @@ void Molecule::removeAtom(Atom *atom)
     d->atomBonds.erase(d->atomBonds.begin() + atom->index());
     d->partialCharges.erase(d->partialCharges.begin() + atom->index());
 
+    if(atom->index() < d->atomTypes.size()){
+        d->atomTypes.erase(d->atomTypes.begin() + atom->index());
+    }
+
     if(m_coordinates){
         m_coordinates->remove(atom->index());
     }
@@ -781,7 +785,7 @@ void Molecule::removeFragment(Fragment *fragment)
     removeAtoms(fragment->atoms());
 }
 
-Fragment* Molecule::fragment(const Atom *atom) const
+Fragment* Molecule::fragmentForAtom(const Atom *atom) const
 {
     foreach(Fragment *fragment, fragments()){
         if(fragment->contains(atom)){
@@ -1019,7 +1023,11 @@ Real Molecule::wilsonAngle(const Atom *a, const Atom *b, const Atom *c, const At
 /// is at \p position.
 void Molecule::setCenter(const Point3 &position)
 {
-    moveBy(position - center());
+    const Vector3 &vector = position - center();
+
+    foreach(Atom *atom, m_atoms){
+        atom->setPosition(atom->position() + vector);
+    }
 }
 
 /// Moves all of the atoms in the molecule so that the new center
@@ -1059,43 +1067,6 @@ Point3 Molecule::centerOfMass() const
     }
 
     return m_coordinates->weightedCenter(weights);
-}
-
-/// Moves all the atoms in the molecule by \p vector.
-void Molecule::moveBy(const Vector3 &vector)
-{
-    foreach(Atom *atom, m_atoms){
-        atom->moveBy(vector);
-    }
-}
-
-/// Moves all of the atoms in the molecule by (\p dx, \p dy, \p dz).
-void Molecule::moveBy(Real dx, Real dy, Real dz)
-{
-    foreach(Atom *atom, m_atoms){
-        atom->moveBy(dx, dy, dz);
-    }
-}
-
-/// Rotates the positions of all the atoms in the molecule
-/// by \p angle degrees around \p axis.
-void Molecule::rotate(const Vector3 &axis, Real angle)
-{
-    // convert angle to radians
-    angle *= chemkit::constants::DegreesToRadians;
-
-    // build rotation transform
-    Eigen::Matrix<Real, 3, 1> axisVector(axis.x(), axis.y(), axis.z());
-    Eigen::Transform<Real, 3, 3> transform(Eigen::AngleAxis<Real>(angle, axisVector));
-
-    // rotate each atom
-    foreach(Atom *atom, m_atoms){
-        Eigen::Matrix<Real, 3, 1> position(atom->x(), atom->y(), atom->z());
-
-        position = transform * position;
-
-        atom->setPosition(position.x(), position.y(), position.z());
-    }
 }
 
 // --- Operators ----------------------------------------------------------- //

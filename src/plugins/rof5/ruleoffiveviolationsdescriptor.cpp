@@ -40,6 +40,7 @@
 RuleOfFiveViolationsDescriptor::RuleOfFiveViolationsDescriptor()
     : chemkit::MolecularDescriptor("rule-of-five-violations")
 {
+    setDimensionality(1);
 }
 
 chemkit::Variant RuleOfFiveViolationsDescriptor::value(const chemkit::Molecule *molecule) const
@@ -49,7 +50,7 @@ chemkit::Variant RuleOfFiveViolationsDescriptor::value(const chemkit::Molecule *
     if(molecule->descriptor("molecular-mass").toDouble() > 500.0) violations++;
     if(molecule->descriptor("hydrogen-bond-donors").toInt() > 5) violations++;
     if(molecule->descriptor("hydrogen-bond-acceptors").toInt() > 10) violations++;
-    if(molecule->descriptor("mlogp").toDouble() > 5.0) violations++;
+    if(molecule->descriptor("moriguchi-logp").toDouble() > 5.0) violations++;
 
     return violations;
 }

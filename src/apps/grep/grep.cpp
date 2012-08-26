@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
     }
 
     // read input molecule
-    boost::scoped_ptr<chemkit::Molecule> patternMolecule(patternFormat->read(formula));
+    boost::shared_ptr<chemkit::Molecule> patternMolecule(patternFormat->read(formula));
     if(!patternMolecule){
         std::cerr << "Error: failed to read pattern molecule: " << patternFormat->errorString() << std::endl;
         return -1;
@@ -155,12 +155,10 @@ int main(int argc, char *argv[])
     }
 
     chemkit::SubstructureQuery query;
-    query.setMolecule(patternMolecule.get());
+    query.setMolecule(patternMolecule);
     query.setFlags(flags);
 
     chemkit::MoleculeFile outputFile;
-
-    std::vector<chemkit::Molecule *> matchingMolecules;
 
     foreach(const boost::shared_ptr<chemkit::Molecule> &molecule, inputFile.molecules()){
         bool match = query.matches(molecule.get());

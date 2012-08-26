@@ -39,6 +39,7 @@
 #include "genericfile.h"
 
 #include <fstream>
+#include <sstream>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -323,6 +324,45 @@ inline bool GenericFile<File, Format>::read(std::istream &input)
     return ok;
 }
 
+/// Reads data from \p input using \p formatName. Returns \c false
+/// if reading fails.
+///
+/// \internal
+template<typename File, typename Format>
+inline bool GenericFile<File, Format>::read(const boost::iostreams::mapped_file_source &input,
+                                            const std::string &formatName)
+{
+    // set the format for the file
+    bool ok = setFormat(formatName);
+    if(!ok){
+        return false;
+    }
+
+    return read(input);
+}
+
+/// Reads data from \p input using the current file format. Returns
+/// \c false if reading fails.
+///
+/// \internal
+template<typename File, typename Format>
+inline bool GenericFile<File, Format>::read(const boost::iostreams::mapped_file_source &input)
+{
+    // check for valid format
+    if(!m_format){
+        setErrorString("No file format set for reading.");
+        return false;
+    }
+
+    // read the file
+    bool ok = m_format->readMappedFile(input, static_cast<File *>(this));
+    if(!ok){
+        setErrorString(m_format->errorString());
+    }
+
+    return ok;
+}
+
 /// Writes to the file using the set file name. Returns \c false if
 /// writing the file fails.
 template<typename File, typename Format>
@@ -485,6 +525,31 @@ inline std::string GenericFile<File, Format>::suffix(const std::string &fileName
     suffix.erase(0, 1);
 
     return suffix;
+}
+
+// Reads the file from the string. This is an internal convenience method
+// provided to ease the implementation of the Python API for file I/O.
+template<typename File, typename Format>
+inline bool GenericFile<File, Format>::_readFromString(const std::string &string)
+{
+    std::istringstream stream(string);
+
+    return read(stream);
+}
+
+// Writes the file to the string. This is an internal convenience method
+// provided to ease the implementation of the Python API for file I/O.
+template<typename File, typename Format>
+inline std::string GenericFile<File, Format>::_writeToString()
+{
+    std::ostringstream stream;
+
+    bool ok = write(stream);
+    if(!ok){
+        return std::string();
+    }
+
+    return stream.str();
 }
 
 } // end chemkit namespace

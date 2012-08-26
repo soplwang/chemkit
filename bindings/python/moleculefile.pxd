@@ -50,6 +50,7 @@ cdef extern from "chemkit/moleculefile.h" namespace "chemkit":
         # properties
         void setFileName(char *fileName)
         string fileName()
+        bool setFormat(char *format)
         string formatName()
         int size()
         bool isEmpty()
@@ -58,9 +59,11 @@ cdef extern from "chemkit/moleculefile.h" namespace "chemkit":
         bool read()
         bool read(char *fileName)
         bool read(char *fileName, char *formatName)
+        bool _readFromString(char *string)
         bool write()
         bool write(char *fileName)
         bool write(char *fileName, char *formatName)
+        string _writeToString()
 
         # file contents
         void addMolecule(shared_ptr[_Molecule] molecule)
@@ -76,4 +79,4 @@ cdef extern from "chemkit/moleculefile.h" namespace "chemkit":
 cdef extern from "chemkit/moleculefile.h" namespace "chemkit::MoleculeFile":
     vector[string] formats()
     shared_ptr[_Molecule] quickRead(string fileName)
-
+    void quickWrite(_Molecule *molecule, string fileName)

@@ -38,6 +38,8 @@
 
 #include "forcefieldenergydescriptor.h"
 
+#include <chemkit/molecule.h>
+
 #include "forcefield.h"
 
 namespace chemkit {
@@ -55,6 +57,8 @@ template<typename ForceField>
 ForceFieldEnergyDescriptor<ForceField>::ForceFieldEnergyDescriptor(const std::string &name)
     : MolecularDescriptor(name)
 {
+    // energy depends on 3D structure
+    setDimensionality(3);
 }
 
 /// Destroys the force field energy descriptor object.
@@ -69,14 +73,14 @@ template<typename ForceField>
 Variant ForceFieldEnergyDescriptor<ForceField>::value(const Molecule *molecule) const
 {
     ForceField forceField;
-    forceField.setMolecule(molecule);
+    forceField.setTopologyFromMolecule(molecule);
 
     bool ok = forceField.setup();
     if(!ok){
         return Variant();
     }
 
-    return forceField.energy();
+    return forceField.energy(molecule->coordinates());
 }
 
 } // end chemkit namespace

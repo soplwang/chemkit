@@ -37,13 +37,14 @@
 
 #include <chemkit/molecule.h>
 
-// === MolecularMassDescriptor ============================================= //
-MolecularMassDescriptor::MolecularMassDescriptor()
-    : chemkit::MolecularDescriptor("molecular-mass")
+// === MassDescriptor ====================================================== //
+MassDescriptor::MassDescriptor()
+    : chemkit::MolecularDescriptor("mass")
 {
+    setDimensionality(0);
 }
 
-chemkit::Variant MolecularMassDescriptor::value(const chemkit::Molecule *molecule) const
+chemkit::Variant MassDescriptor::value(const chemkit::Molecule *molecule) const
 {
     return molecule->mass();
 }

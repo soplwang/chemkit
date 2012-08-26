@@ -1,4 +1,3 @@
-
 /******************************************************************************
 **
 ** Copyright (C) 2009-2011 Kyle Lutz <kyle.r.lutz@gmail.com>
@@ -97,23 +96,39 @@ const Molecule* AtomTyper::molecule() const
 
 // --- Types --------------------------------------------------------------- //
 /// Returns the symbolic type for \p atom.
-Variant AtomTyper::type(const Atom *atom) const
+std::string AtomTyper::type(const Atom *atom) const
 {
     CHEMKIT_UNUSED(atom);
 
-    return Variant();
+    return std::string();
 }
 
-/// Returns the symbolic type for \p atom as an integer.
-int AtomTyper::typeNumber(const Atom *atom) const
+// --- Interaction Types --------------------------------------------------- //
+int AtomTyper::bondedInteractionType(const Atom *a, const Atom *b) const
 {
-    return type(atom).toInt();
+    CHEMKIT_UNUSED(a);
+    CHEMKIT_UNUSED(b);
+
+    return 0;
 }
 
-/// Returns the symbolic type for \p atom as a string.
-std::string AtomTyper::typeString(const Atom *atom) const
+int AtomTyper::angleInteractionType(const Atom *a, const Atom *b, const Atom *c) const
 {
-    return type(atom).toString();
+    CHEMKIT_UNUSED(a);
+    CHEMKIT_UNUSED(b);
+    CHEMKIT_UNUSED(c);
+
+    return 0;
+}
+
+int AtomTyper::torsionInteractionType(const Atom *a, const Atom *b, const Atom *c, const Atom *d) const
+{
+    CHEMKIT_UNUSED(a);
+    CHEMKIT_UNUSED(b);
+    CHEMKIT_UNUSED(c);
+    CHEMKIT_UNUSED(d);
+
+    return 0;
 }
 
 // --- Predicates ---------------------------------------------------------- //
@@ -266,6 +281,29 @@ AtomTyper* AtomTyper::create(const std::string &name)
 std::vector<std::string> AtomTyper::typers()
 {
     return PluginManager::instance()->pluginClassNames<AtomTyper>();
+}
+
+/// This static convenience function assigns atom types for atoms
+/// in molecule using the specified \p typer.
+///
+/// For example, to assign SYBYL atom types for a molecule:
+/// \code
+/// AtomTyper::assignAtomTypes(molecule, "sybyl");
+/// \endcode
+bool AtomTyper::assignAtomTypes(Molecule *molecule, const std::string &typer)
+{
+    boost::scoped_ptr<AtomTyper> atomTyper(create(typer));
+    if(!atomTyper){
+        return false;
+    }
+
+    atomTyper->setMolecule(molecule);
+
+    foreach(Atom *atom, molecule->atoms()){
+        atom->setType(atomTyper->type(atom));
+    }
+
+    return true;
 }
 
 } // end chemkit namespace

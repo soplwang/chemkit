@@ -41,6 +41,7 @@ from libcpp.vector cimport vector
 from moleculefile cimport _MoleculeFile
 from moleculefile cimport formats as _MoleculeFile_formats
 from moleculefile cimport quickRead as _MoleculeFile_quickRead
+from moleculefile cimport quickWrite as _MoleculeFile_quickWrite
 
 cdef class MoleculeFile:
     """The MoleculeFile class represents a file containing molecules."""
@@ -72,6 +73,11 @@ cdef class MoleculeFile:
 
         return self._moleculeFile.fileName().c_str()
 
+    def setFormat(self, char *format):
+        """Sets the file format."""
+
+        return self._moleculeFile.setFormat(format)
+
     def formatName(self):
         """Returns the name of the file format for the file."""
 
@@ -99,6 +105,11 @@ cdef class MoleculeFile:
             else:
                 return self._moleculeFile.read(fileName, formatName)
 
+    def readString(self, char *string):
+        """Reads the file data from the string."""
+
+        return self._moleculeFile._readFromString(string)
+
     def write(self, char *fileName = NULL, char *formatName = NULL):
         """Writes the file."""
 
@@ -109,6 +120,13 @@ cdef class MoleculeFile:
                 return self._moleculeFile.write(fileName)
             else:
                 return self._moleculeFile.write(fileName, formatName)
+
+    def writeString(self):
+        """Writes the data to a string and returns it."""
+
+        string = self._moleculeFile._writeToString()
+
+        return string.c_str()
 
     ### File Contents #########################################################
     def addMolecule(self, Molecule molecule):
@@ -180,3 +198,9 @@ cdef class MoleculeFile:
         cdef shared_ptr[_Molecule] _molecule = _MoleculeFile_quickRead(<string>(fileName))
 
         return Molecule_fromSharedPointer(new shared_ptr[_Molecule](_molecule))
+
+    @classmethod
+    def quickWrite(cls, Molecule molecule, char *fileName):
+        """Writes the molecule to a file with the given fileName."""
+
+        _MoleculeFile_quickWrite(molecule._molecule, <string>(fileName))

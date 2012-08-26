@@ -41,20 +41,23 @@
 #include <string>
 #include <vector>
 
+#include <boost/thread/future.hpp>
+
 #include <chemkit/plugin.h>
 #include <chemkit/point3.h>
 #include <chemkit/vector3.h>
 
-#include "forcefieldatom.h"
+#include "potential.h"
 #include "forcefieldcalculation.h"
 
 namespace chemkit {
 
-class Atom;
 class Molecule;
+class Topology;
 class ForceFieldPrivate;
+class CartesianCoordinates;
 
-class CHEMKIT_MD_EXPORT ForceField
+class CHEMKIT_MD_EXPORT ForceField : public Potential
 {
 public:
     // enumerations
@@ -68,18 +71,14 @@ public:
     // properties
     std::string name() const;
     int flags() const;
-    int size() const;
-    std::vector<ForceFieldAtom *> atoms() const;
-    int atomCount() const;
-    ForceFieldAtom* atom(int index) const;
-    ForceFieldAtom* atom(const Atom *atom) const;
+    size_t size() const CHEMKIT_OVERRIDE;
 
     // setup
-    void setMolecule(const Molecule *molecule);
-    const Molecule* molecule() const;
+    void setTopology(const boost::shared_ptr<Topology> &topology);
+    void setTopologyFromMolecule(const Molecule *molecule);
+    boost::shared_ptr<Topology> topology() const;
     virtual bool setup();
     bool isSetup() const;
-    virtual void clear();
 
     // parameters
     void setParameterSet(const std::string &name);
@@ -90,18 +89,9 @@ public:
 
     // calculations
     std::vector<ForceFieldCalculation *> calculations() const;
-    int calculationCount() const;
-    virtual Real energy() const;
-    std::vector<Vector3> gradient() const;
-    std::vector<Vector3> numericalGradient() const;
-    Real rmsg() const;
-
-    // coordinates
-    void writeCoordinates(Molecule *molecule) const;
-    void writeCoordinates(Atom *atom) const;
-
-    // energy minimization
-    bool minimizationStep(Real converganceValue = 0.1);
+    size_t calculationCount() const;
+    Real energy(const CartesianCoordinates *coordinates) const CHEMKIT_OVERRIDE;
+    std::vector<Vector3> gradient(const CartesianCoordinates *coordinates) const CHEMKIT_OVERRIDE;
 
     // error handling
     std::string errorString() const;
@@ -113,8 +103,6 @@ public:
 protected:
     ForceField(const std::string &name);
     void setFlags(int flags);
-    void addAtom(ForceFieldAtom *atom);
-    void removeAtom(ForceFieldAtom *atom);
     void addCalculation(ForceFieldCalculation *calculation);
     void removeCalculation(ForceFieldCalculation *calculation);
     void setCalculationSetup(ForceFieldCalculation *calculation, bool setup);

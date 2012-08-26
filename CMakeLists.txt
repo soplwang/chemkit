@@ -3,12 +3,17 @@ cmake_minimum_required(VERSION 2.8)
 project(Chemkit)
 
 set(CHEMKIT_VERSION_MAJOR 0)
-set(CHEMKIT_VERSION_MINOR 0)
+set(CHEMKIT_VERSION_MINOR 1)
 
 set(CMAKE_MODULE_PATH ${Chemkit_SOURCE_DIR}/cmake)
 
 # find dependencies
 find_package(Eigen3 REQUIRED)
+
+if(WIN32)
+  set(Boost_USE_STATIC_LIBS ON)
+endif()
+
 find_package(Boost REQUIRED)
 link_directories(${Boost_LIBRARY_DIRS})
 
@@ -30,6 +35,9 @@ add_custom_target(uninstall
 	COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 set(CHEMKIT_IN_BUILD_TREE TRUE)
+
+# so "find_package(Chemkit)" calls will find this build tree's version
+set(Chemkit_DIR "${CMAKE_BINARY_DIR}")
 
 # configure and install ChemkitConfig.cmake file
 configure_file(
@@ -67,10 +75,23 @@ if(MSVC)
 
   # disable boost auto-linking
   add_definitions("-DBOOST_ALL_NO_LIB")
-  add_definitions("-DBOOST_ALL_DYN_LINK")
 
   # disable unsafe string function warnings
   add_definitions("-D_CRT_SECURE_NO_WARNINGS")
+endif()
+
+# set a variable for the operating system
+set(CHEMKIT_OS_UNIX FALSE)
+set(CHEMKIT_OS_MAC FALSE)
+set(CHEMKIT_OS_WIN32 FALSE)
+
+if(UNIX)
+  set(CHEMKIT_OS_UNIX TRUE)
+  if(APPLE)
+    set(CHEMKIT_OS_MAC TRUE)
+  endif()
+elseif(WIN32)
+  set(CHEMKIT_OS_WIN32 TRUE)
 endif()
 
 add_subdirectory(src)

@@ -40,15 +40,15 @@
 
 #include <vector>
 
-#include <boost/array.hpp>
+#include <boost/shared_ptr.hpp>
 
-#include <chemkit/point3.h>
 #include <chemkit/vector3.h>
 
 namespace chemkit {
 
+class Topology;
 class ForceField;
-class ForceFieldAtom;
+class CartesianCoordinates;
 class ForceFieldCalculationPrivate;
 
 class CHEMKIT_MD_EXPORT ForceFieldCalculation
@@ -68,12 +68,13 @@ public:
     int type() const;
     bool isSetup() const;
     ForceField* forceField() const;
+    boost::shared_ptr<Topology> topology() const;
 
     // atoms
-    const ForceFieldAtom* atom(int index) const;
-    std::vector<const ForceFieldAtom *> atoms() const;
-    int atomCount() const;
-    bool contains(const ForceFieldAtom *atom) const;
+    size_t atom(size_t index) const;
+    std::vector<size_t> atoms() const;
+    size_t atomCount() const;
+    std::string atomType(size_t index) const;
 
     // parameters
     void setParameter(int index, Real value);
@@ -82,31 +83,18 @@ public:
     int parameterCount() const;
 
     // calculations
-    virtual Real energy() const;
-    virtual std::vector<Vector3> gradient() const;
-    std::vector<Vector3> numericalGradient() const;
+    virtual Real energy(const CartesianCoordinates *coordinates) const;
+    virtual std::vector<Vector3> gradient(const CartesianCoordinates *coordinates) const;
+    std::vector<Vector3> numericalGradient(const CartesianCoordinates *coordinates) const;
 
 protected:
-    ForceFieldCalculation(int type, int atomCount, int parameterCount);
+    ForceFieldCalculation(int type, size_t atomCount, size_t parameterCount);
     virtual ~ForceFieldCalculation();
-    void setAtom(int index, const ForceFieldAtom *atom);
-    inline Real distance(const ForceFieldAtom *a, const ForceFieldAtom *b) const;
-    inline boost::array<Vector3, 2> distanceGradient(const ForceFieldAtom *a, const ForceFieldAtom *b) const;
-    inline Real bondAngle(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c) const;
-    inline Real bondAngleRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c) const;
-    inline boost::array<Vector3, 3> bondAngleGradient(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c) const;
-    inline boost::array<Vector3, 3> bondAngleGradientRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c) const;
-    inline Real torsionAngle(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const;
-    inline Real torsionAngleRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const;
-    inline boost::array<Vector3, 4> torsionAngleGradient(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const;
-    inline boost::array<Vector3, 4> torsionAngleGradientRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const;
-    inline Real wilsonAngle(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const;
-    inline Real wilsonAngleRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const;
-    inline boost::array<Vector3, 4> wilsonAngleGradient(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const;
-    inline boost::array<Vector3, 4> wilsonAngleGradientRadians(const ForceFieldAtom *a, const ForceFieldAtom *b, const ForceFieldAtom *c, const ForceFieldAtom *d) const;
+    void setAtom(size_t index, size_t atom);
 
 private:
     void setSetup(bool setup);
+    void setForceField(ForceField *forceField);
 
     friend class ForceField;
 
@@ -115,7 +103,5 @@ private:
 };
 
 } // end chemkit namespace
-
-#include "forcefieldcalculation-inline.h"
 
 #endif // CHEMKIT_FORCEFIELDCALCULATION_H

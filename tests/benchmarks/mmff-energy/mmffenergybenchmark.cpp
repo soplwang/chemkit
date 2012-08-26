@@ -36,6 +36,7 @@
 #include "mmffenergybenchmark.h"
 
 #include <chemkit/molecule.h>
+#include <chemkit/topology.h>
 #include <chemkit/forcefield.h>
 #include <chemkit/moleculefile.h>
 
@@ -59,11 +60,11 @@ void MmffEnergyBenchmark::benchmark()
         foreach(const boost::shared_ptr<chemkit::Molecule> &molecule, file.molecules()){
             QVERIFY(forceField);
 
-            forceField->setMolecule(molecule.get());
+            forceField->setTopologyFromMolecule(molecule.get());
             forceField->setup();
             //QVERIFY(forceField->isSetup());
 
-            totalEnergy += forceField->energy();
+            totalEnergy += forceField->energy(molecule->coordinates());
         }
 
         delete forceField;

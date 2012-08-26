@@ -147,6 +147,31 @@ Atom::MassNumberType Atom::massNumber() const
     return isotope().massNumber();
 }
 
+/// Sets the symbolic type for the atom to \p type.
+void Atom::setType(const std::string &type)
+{
+    std::vector<std::string> &atomTypes = m_molecule->d->atomTypes;
+
+    if(m_index >= atomTypes.size()){
+        atomTypes.resize(m_index + 1);
+    }
+
+    atomTypes[m_index] = type;
+}
+
+/// Returns the symbolic type for the atom or an empty string if no
+/// atom type has been set.
+std::string Atom::type() const
+{
+    std::vector<std::string> &atomTypes = m_molecule->d->atomTypes;
+
+    if(m_index >= atomTypes.size()){
+        return std::string();
+    }
+
+    return atomTypes[m_index];
+}
+
 /// Returns the atom's expected valence.
 int Atom::expectedValence() const
 {
@@ -218,7 +243,7 @@ Real Atom::vanDerWaalsRadius() const
 /// Returns the fragment the atom is a part of.
 Fragment* Atom::fragment() const
 {
-    return molecule()->fragment(this);
+    return molecule()->fragmentForAtom(this);
 }
 
 // --- Structure ----------------------------------------------------------- //
@@ -498,32 +523,6 @@ Real Atom::y() const
 Real Atom::z() const
 {
     return position().z();
-}
-
-/// Moves the atom to position. Equivalent to setPosition(position).
-void Atom::moveTo(const Point3 &position)
-{
-    setPosition(position);
-}
-
-/// Moves the atom to the point (x, y, z). Equivalent to
-/// setPosition(x, y, z).
-void Atom::moveTo(Real x, Real y, Real z)
-{
-    setPosition(x, y, z);
-}
-
-/// Moves the atom by vector.
-void Atom::moveBy(const Vector3 &vector)
-{
-    moveBy(vector.x(), vector.y(), vector.z());
-}
-
-/// Moves the atom by relative amounts dx, dy, dz. Equivalent to
-/// setPosition(x()+dx, y()+dy, z()+dz).
-void Atom::moveBy(Real dx, Real dy, Real dz)
-{
-    setPosition(x() + dx, y() + dy, z() + dz);
 }
 
 /// Returns the distance between the atom and the other atom.

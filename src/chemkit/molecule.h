@@ -160,9 +160,6 @@ public:
     void setCenter(Real x, Real y, Real z);
     Point3 center() const;
     Point3 centerOfMass() const;
-    void moveBy(const Vector3 &vector);
-    void moveBy(Real dx, Real dy, Real dz);
-    void rotate(const Vector3 &axis, Real angle);
 
     // operators
     Molecule& operator=(const Molecule &molecule);
@@ -175,7 +172,7 @@ private:
     void setFragmentsPerceived(bool perceived) const;
     bool fragmentsPerceived() const;
     void perceiveFragments() const;
-    Fragment* fragment(const Atom *atom) const;
+    Fragment* fragmentForAtom(const Atom *atom) const;
     void notifyWatchers(MoleculeWatcher::ChangeType type);
     void notifyWatchers(const Atom *atom, MoleculeWatcher::ChangeType type);
     void notifyWatchers(const Bond *bond, MoleculeWatcher::ChangeType type);

@@ -44,6 +44,8 @@
 #include <istream>
 #include <ostream>
 
+#include <boost/iostreams/device/mapped_file.hpp>
+
 #include <chemkit/variant.h>
 #include <chemkit/variantmap.h>
 
@@ -74,6 +76,8 @@ public:
     bool read(const std::string &fileName, const std::string &formatName);
     bool read(std::istream &input, const std::string &formatName);
     bool read(std::istream &input);
+    bool read(const boost::iostreams::mapped_file_source &input, const std::string &formatName);
+    bool read(const boost::iostreams::mapped_file_source &input);
     bool write();
     bool write(const std::string &fileName);
     bool write(const std::string &fileName, const std::string &formatName);
@@ -87,6 +91,10 @@ public:
 
     // error handling
     std::string errorString() const;
+
+    // internal methods
+    bool _readFromString(const std::string &string);
+    std::string _writeToString();
 
     // static methods
     static std::vector<std::string> formats();

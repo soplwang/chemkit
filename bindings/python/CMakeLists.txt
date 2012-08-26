@@ -18,9 +18,15 @@ find_program(CYTHON cython REQUIRED)
 set(SOURCES
   atom.pxd
   atom.pxi
+  atomtyper.pxd
+  atomtyper.pxi
   bond.pxd
   bond.pxi
+  bondpredictor.pxd
+  bondpredictor.pxi
   chemkit.pyx
+  coordinatepredictor.pxd
+  coordinatepredictor.pxi
   element.pxd
   element.pxi
   fingerprint.pxd
@@ -37,6 +43,10 @@ set(SOURCES
   moleculefile.pxi
   molecule.pxd
   molecule.pxi
+  moleculegeometryoptimizer.pxd
+  moleculegeometryoptimizer.pxi
+  partialchargemodel.pxd
+  partialchargemodel.pxi
   point3.pxd
   point3.pxi
   ring.pxd
@@ -58,7 +68,7 @@ add_custom_command(OUTPUT chemkit.cpp
 # build library
 add_library(chemkit-python SHARED chemkit.cpp)
 set_target_properties(chemkit-python PROPERTIES OUTPUT_NAME "chemkit" PREFIX "")
-target_link_libraries(chemkit-python ${CHEMKIT_LIBRARIES})
+target_link_libraries(chemkit-python ${CHEMKIT_LIBRARIES} ${PYTHON_LIBRARIES})
 
 # find python site-packages directory for installation
 execute_process(COMMAND ${PYTHON_EXECUTABLE}

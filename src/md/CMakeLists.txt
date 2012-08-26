@@ -6,28 +6,29 @@ find_package(Chemkit REQUIRED)
 include_directories(${CHEMKIT_INCLUDE_DIRS})
 
 set(HEADERS
-  forcefieldatom.h
   forcefieldcalculation.h
-  forcefieldcalculation-inline.h
   forcefieldenergydescriptor.h
   forcefieldenergydescriptor-inline.h
   forcefield.h
-  forcefieldinteractions.h
+  integrator.h
   md.h
   moleculegeometryoptimizer.h
+  potential.h
   topology.h
+  topologybuilder.h
   trajectory.h
   trajectoryframe.h
 )
 
 set(SOURCES
-  forcefieldatom.cpp
   forcefieldcalculation.cpp
   forcefield.cpp
-  forcefieldinteractions.cpp
+  integrator.cpp
   md.cpp
   moleculegeometryoptimizer.cpp
+  potential.cpp
   topology.cpp
+  topologybuilder.cpp
   trajectory.cpp
   trajectoryframe.cpp
 )

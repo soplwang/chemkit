@@ -41,6 +41,7 @@
 #include <chemkit/foreach.h>
 #include <chemkit/molecule.h>
 
+#include "mmffparameters.h"
 #include "mmffaromaticitymodel.h"
 
 namespace {
@@ -458,9 +459,126 @@ void MmffAtomTyper::setMolecule(const chemkit::Molecule *molecule)
 }
 
 // --- Types --------------------------------------------------------------- //
+std::string MmffAtomTyper::type(const chemkit::Atom *atom) const
+{
+    return boost::lexical_cast<std::string>(m_types[atom->index()]);
+}
+
 int MmffAtomTyper::typeNumber(const chemkit::Atom *atom) const
 {
     return m_types[atom->index()];
+}
+
+// --- Interaction Types --------------------------------------------------- //
+int MmffAtomTyper::bondedInteractionType(const chemkit::Atom *a,
+                                         const chemkit::Atom *b) const
+{
+    const chemkit::Bond *bond = a->bondTo(b);
+
+    int typeA = typeNumber(a);
+    int typeB = typeNumber(b);
+
+    return MmffParameters::calculateBondType(bond, typeA, typeB);
+}
+
+int MmffAtomTyper::angleInteractionType(const chemkit::Atom *a,
+                                        const chemkit::Atom *b,
+                                        const chemkit::Atom *c) const
+{
+    int bondTypeAB = bondedInteractionType(a, b);
+    int bondTypeBC = bondedInteractionType(b, c);
+    int bondTypeSum = bondTypeAB + bondTypeBC;
+
+    bool inThreeMemberedRing = false;
+    bool inFourMemberedRing = false;
+
+    if(a->isBondedTo(c)){
+        inThreeMemberedRing = true;
+    }
+    else{
+        foreach(const chemkit::Atom *neighbor, a->neighbors()){
+            if(neighbor == b){
+                continue;
+            }
+
+            if(neighbor->isBondedTo(c)){
+                inFourMemberedRing = true;
+            }
+        }
+    }
+
+    if(inThreeMemberedRing){
+        if(bondTypeSum == 1){
+            return 5;
+        }
+        else if(bondTypeSum == 2){
+            return 6;
+        }
+        else{
+            return 3;
+        }
+    }
+    else if(inFourMemberedRing){
+        if(bondTypeSum == 1){
+            return 7;
+        }
+        else if(bondTypeSum == 2){
+            return 8;
+        }
+        else{
+            return 4;
+        }
+    }
+    else if(bondTypeSum == 1){
+        return 1;
+    }
+    else if(bondTypeSum == 2){
+        return 2;
+    }
+    else{
+        return 0;
+    }
+}
+
+int MmffAtomTyper::torsionInteractionType(const chemkit::Atom *a,
+                                          const chemkit::Atom *b,
+                                          const chemkit::Atom *c,
+                                          const chemkit::Atom *d) const
+{
+    int bondTypeAB = bondedInteractionType(a, b);
+    int bondTypeBC = bondedInteractionType(b, c);
+    int bondTypeCD = bondedInteractionType(c, d);
+
+    bool inFourMemberedRing = false;
+    bool inFiveMemberedRing = false;
+
+    if(a->isBondedTo(d)){
+        inFourMemberedRing = true;
+    }
+
+    foreach(const chemkit::Ring *ring, a->rings()){
+        if(ring->size() == 5){
+            if(ring->contains(b) && ring->contains(c) && ring->contains(d)){
+                inFiveMemberedRing = true;
+            }
+        }
+    }
+
+    if(inFourMemberedRing){
+        return 4;
+    }
+    else if(inFiveMemberedRing){
+        return 5;
+    }
+    else if(bondTypeBC == 1){
+        return 1;
+    }
+    else if(bondTypeAB == 1 || bondTypeCD == 1){
+        return 2;
+    }
+    else{
+        return 0;
+    }
 }
 
 // --- Charges ------------------------------------------------------------- //
@@ -472,6 +590,167 @@ chemkit::Real MmffAtomTyper::formalCharge(int index) const
 chemkit::Real MmffAtomTyper::formalCharge(const chemkit::Atom *atom) const
 {
     return formalCharge(atom->index());
+}
+
+// --- Static Methods ------------------------------------------------------ //
+chemkit::Element MmffAtomTyper::typeToElement(int type)
+{
+    switch(type){
+        // hydrogen
+        case 5:
+        case 21:
+        case 23:
+        case 24:
+        case 27:
+        case 28:
+        case 29:
+        case 31:
+        case 33:
+        case 36:
+        case 50:
+        case 52:
+        case 71:
+            return chemkit::Atom::Hydrogen;
+
+        // carbon
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 20:
+        case 22:
+        case 30:
+        case 37:
+        case 41:
+        case 57:
+        case 60:
+        case 63:
+        case 64:
+        case 78:
+        case 80:
+            return chemkit::Atom::Carbon;
+
+        // nitrogen
+        case 8:
+        case 9:
+        case 10:
+        case 34:
+        case 38:
+        case 39:
+        case 40:
+        case 42:
+        case 43:
+        case 45:
+        case 46:
+        case 47:
+        case 48:
+        case 53:
+        case 54:
+        case 55:
+        case 56:
+        case 58:
+        case 61:
+        case 62:
+        case 65:
+        case 66:
+        case 67:
+        case 68:
+        case 69:
+        case 76:
+        case 79:
+        case 81:
+        case 82:
+            return chemkit::Atom::Nitrogen;
+
+        // oxygen
+        case 6:
+        case 7:
+        case 32:
+        case 35:
+        case 49:
+        case 51:
+        case 59:
+        case 70:
+            return chemkit::Atom::Oxygen;
+
+        // phosphorus
+        case 25:
+        case 26:
+        case 75:
+            return chemkit::Atom::Phosphorus;
+
+        // sulfur
+        case 15:
+        case 16:
+        case 17:
+        case 18:
+        case 44:
+        case 72:
+        case 73:
+        case 74:
+            return chemkit::Atom::Sulfur;
+
+        // fluorine
+        case 11:
+        case 89:
+            return chemkit::Atom::Fluorine;
+
+        // chlorine
+        case 12:
+        case 77:
+        case 90:
+            return chemkit::Atom::Chlorine;
+
+        // bromine
+        case 13:
+        case 91:
+            return chemkit::Atom::Bromine;
+
+        // iodine
+        case 14:
+            return chemkit::Atom::Iodine;
+
+        // iron
+        case 87:
+        case 88:
+            return chemkit::Atom::Iron;
+
+        // lithium
+        case 92:
+            return chemkit::Atom::Lithium;
+
+        // sodium
+        case 93:
+            return chemkit::Atom::Sodium;
+
+        // potassium
+        case 94:
+            return chemkit::Atom::Potassium;
+
+        // zinc
+        case 95:
+            return chemkit::Atom::Zinc;
+
+        // calcium
+        case 96:
+            return chemkit::Atom::Calcium;
+
+        // copper
+        case 97:
+        case 98:
+            return chemkit::Atom::Copper;
+
+        // magnesium
+        case 99:
+            return chemkit::Atom::Magnesium;
+
+        // silicon
+        case 19:
+            return chemkit::Atom::Silicon;
+
+        default:
+            return chemkit::Element();
+    }
 }
 
 // --- Internal Methods ---------------------------------------------------- //

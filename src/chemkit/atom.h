@@ -84,6 +84,8 @@ public:
     Isotope isotope() const;
     void setMassNumber(MassNumberType massNumber);
     MassNumberType massNumber() const;
+    void setType(const std::string &type);
+    std::string type() const;
     int expectedValence() const;
     int formalCharge() const;
     void setPartialCharge(Real charge);
@@ -132,10 +134,6 @@ public:
     Real x() const;
     Real y() const;
     Real z() const;
-    void moveTo(const Point3 &position);
-    void moveTo(Real x, Real y, Real z);
-    void moveBy(const Vector3 &vector);
-    void moveBy(Real dx, Real dy, Real dz);
     Real distance(const Atom *atom) const;
 
     // chirality

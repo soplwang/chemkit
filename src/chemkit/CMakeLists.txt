@@ -4,7 +4,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_SOURCE_DI
 find_package(Chemkit)
 include_directories(${CHEMKIT_INCLUDE_DIRS})
 
-find_package(Boost COMPONENTS system filesystem REQUIRED)
+find_package(Boost COMPONENTS system filesystem thread REQUIRED)
 
 set(HEADERS
   alphashape.h
@@ -19,6 +19,7 @@ set(HEADERS
   bondpredictor.h
   cartesiancoordinates.h
   chemkit.h
+  concurrent.h
   config.h
   constants.h
   coordinatepredictor.h
@@ -29,6 +30,7 @@ set(HEADERS
   element.h
   element-inline.h
   fingerprint.h
+  fingerprintsimilaritydescriptor.h
   foreach.h
   fragment.h
   fragment-inline.h
@@ -47,9 +49,10 @@ set(HEADERS
   molecule-inline.h
   moleculealigner.h
   moleculeeditor.h
+  moleculegraphtraits.h
   moleculewatcher.h
   nucleotide.h
-  partialchargepredictor.h
+  partialchargemodel.h
   plugin.h
   plugin-inline.h
   pluginmanager.h
@@ -63,8 +66,8 @@ set(HEADERS
   ring.h
   ring-inline.h
   scalarfield.h
-  similaritydescriptor.h
   stereochemistry.h
+  structuresimilaritydescriptor.h
   substructurequery.h
   unitcell.h
   variant.h
@@ -91,6 +94,7 @@ set(SOURCES
   dynamiclibrary.cpp
   element.cpp
   fingerprint.cpp
+  fingerprintsimilaritydescriptor.cpp
   fragment.cpp
   geometry.cpp
   internalcoordinates.cpp
@@ -104,7 +108,7 @@ set(SOURCES
   moleculeeditor.cpp
   moleculewatcher.cpp
   nucleotide.cpp
-  partialchargepredictor.cpp
+  partialchargemodel.cpp
   plugin.cpp
   pluginmanager.cpp
   polymer.cpp
@@ -112,8 +116,8 @@ set(SOURCES
   residue.cpp
   ring.cpp
   scalarfield.cpp
-  similaritydescriptor.cpp
   stereochemistry.cpp
+  structuresimilaritydescriptor.cpp
   substructurequery.cpp
   unitcell.cpp
 )

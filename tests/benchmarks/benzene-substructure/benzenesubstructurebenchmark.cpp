@@ -40,6 +40,8 @@
 
 #include "benzenesubstructurebenchmark.h"
 
+#include <boost/make_shared.hpp>
+
 #include <chemkit/molecule.h>
 #include <chemkit/moleculefile.h>
 #include <chemkit/substructurequery.h>
@@ -55,9 +57,8 @@ void BenzeneSubstructureBenchmark::benchmark()
         qDebug() << file.errorString().c_str();
     QVERIFY(ok);
 
-    // create benzene molecule
-    chemkit::Molecule benzene("1/C6H6/c1-2-4-6-5-3-1/h1-6H", "inchi");
-    chemkit::SubstructureQuery query(&benzene);
+    // create query for benzene molecule
+    chemkit::SubstructureQuery query("1/C6H6/c1-2-4-6-5-3-1/h1-6H", "inchi");
 
     QBENCHMARK {
         // number of substructure matches

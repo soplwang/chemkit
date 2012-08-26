@@ -35,9 +35,10 @@
 
 #include "forcefieldcalculation.h"
 
-#include <algorithm>
+#include <chemkit/cartesiancoordinates.h>
 
-#include "forcefieldatom.h"
+#include "topology.h"
+#include "forcefield.h"
 
 namespace chemkit {
 
@@ -45,10 +46,11 @@ namespace chemkit {
 class ForceFieldCalculationPrivate
 {
 public:
+    ForceField *forceField;
     int type;
     bool setup;
     std::vector<Real> parameters;
-    std::vector<const ForceFieldAtom *> atoms;
+    std::vector<size_t> atoms;
 };
 
 // === ForceFieldCalculation =============================================== //
@@ -60,9 +62,12 @@ public:
 /// \see ForceField
 
 // --- Construction and Destruction ---------------------------------------- //
-ForceFieldCalculation::ForceFieldCalculation(int type, int atomCount, int parameterCount)
+ForceFieldCalculation::ForceFieldCalculation(int type,
+                                             size_t atomCount,
+                                             size_t parameterCount)
     : d(new ForceFieldCalculationPrivate)
 {
+    d->forceField = 0;
     d->type = type;
     d->setup = false;
     d->atoms.resize(atomCount);
@@ -90,44 +95,42 @@ bool ForceFieldCalculation::isSetup() const
 /// Returns the force field the calculation is a part of.
 ForceField* ForceFieldCalculation::forceField() const
 {
-    return const_cast<ForceFieldAtom *>(d->atoms[0])->forceField();
+    return d->forceField;
+}
+
+boost::shared_ptr<Topology> ForceFieldCalculation::topology() const
+{
+    return d->forceField->topology();
 }
 
 // --- Atoms --------------------------------------------------------------- //
 /// Sets the atom at \p index to \p atom.
-void ForceFieldCalculation::setAtom(int index, const ForceFieldAtom *atom)
+void ForceFieldCalculation::setAtom(size_t index, size_t atom)
 {
     d->atoms[index] = atom;
 }
 
 /// Returns the atom at index in the calculation.
-const ForceFieldAtom* ForceFieldCalculation::atom(int index) const
+size_t ForceFieldCalculation::atom(size_t index) const
 {
     return d->atoms[index];
 }
 
 /// Returns the atoms in the calculation.
-std::vector<const ForceFieldAtom *> ForceFieldCalculation::atoms() const
+std::vector<size_t> ForceFieldCalculation::atoms() const
 {
-    std::vector<const ForceFieldAtom *> atoms(d->atoms.size());
-
-    for(unsigned int i = 0; i < d->atoms.size(); i++){
-        atoms[i] = d->atoms[i];
-    }
-
-    return atoms;
+    return d->atoms;
 }
 
 /// Returns the number of atoms in the calculation.
-int ForceFieldCalculation::atomCount() const
+size_t ForceFieldCalculation::atomCount() const
 {
     return d->atoms.size();
 }
 
-/// Returns \c true if the calculation contains the atom.
-bool ForceFieldCalculation::contains(const ForceFieldAtom *atom) const
+std::string ForceFieldCalculation::atomType(size_t index) const
 {
-    return std::find(d->atoms.begin(), d->atoms.end(), atom) != d->atoms.end();
+    return topology()->type(atom(index));
 }
 
 // --- Parameters ---------------------------------------------------------- //
@@ -157,8 +160,10 @@ int ForceFieldCalculation::parameterCount() const
 
 // --- Calculations -------------------------------------------------------- //
 /// Returns the energy of the calculation. Energy is in kcal/mol.
-Real ForceFieldCalculation::energy() const
+Real ForceFieldCalculation::energy(const CartesianCoordinates *coordinates) const
 {
+    CHEMKIT_UNUSED(coordinates);
+
     return 0;
 }
 
@@ -183,9 +188,9 @@ Real ForceFieldCalculation::energy() const
 ///                \right]
 /// \f]
 **/
-std::vector<Vector3> ForceFieldCalculation::gradient() const
+std::vector<Vector3> ForceFieldCalculation::gradient(const CartesianCoordinates *coordinates) const
 {
-    return numericalGradient();
+    return numericalGradient(coordinates);
 }
 
 /// Returns the gradient of the energy with respect to the
@@ -193,28 +198,31 @@ std::vector<Vector3> ForceFieldCalculation::gradient() const
 /// is used when analytical gradients are not available.
 ///
 /// \see ForceFieldCalculation::gradient()
-std::vector<Vector3> ForceFieldCalculation::numericalGradient() const
+std::vector<Vector3> ForceFieldCalculation::numericalGradient(const CartesianCoordinates *coordinates) const
 {
     std::vector<Vector3> gradient(atomCount());
 
-    for(int i = 0; i < atomCount(); i++){
-        ForceFieldAtom *atom = const_cast<ForceFieldAtom *>(d->atoms[i]);
+    CartesianCoordinates writeableCoordinates = *coordinates;
+
+    for(size_t i = 0; i < atomCount(); i++){
+        size_t atom = this->atom(i);
+        const Point3 &position = coordinates->position(atom);
 
         // initial energy
-        Real eI = energy();
+        Real eI = energy(&writeableCoordinates);
         Real epsilon = 1.0e-10;
 
-        atom->moveBy(epsilon, 0, 0);
-        Real eF_x = energy();
+        writeableCoordinates.setPosition(atom, position + Vector3(epsilon, 0, 0));
+        Real eF_x = energy(&writeableCoordinates);
 
-        atom->moveBy(-epsilon, epsilon, 0);
-        Real eF_y = energy();
+        writeableCoordinates.setPosition(atom, position + Vector3(0, epsilon, 0));
+        Real eF_y = energy(&writeableCoordinates);
 
-        atom->moveBy(0, -epsilon, epsilon);
-        Real eF_z = energy();
+        writeableCoordinates.setPosition(atom, position + Vector3(0, 0, epsilon));
+        Real eF_z = energy(&writeableCoordinates);
 
         // restore initial position
-        atom->moveBy(0, 0, -epsilon);
+        writeableCoordinates.setPosition(atom, coordinates->position(atom));
 
         Real dx = (eF_x - eI) / epsilon;
         Real dy = (eF_y - eI) / epsilon;
@@ -230,6 +238,11 @@ std::vector<Vector3> ForceFieldCalculation::numericalGradient() const
 void ForceFieldCalculation::setSetup(bool setup)
 {
     d->setup = setup;
+}
+
+void ForceFieldCalculation::setForceField(ForceField *forceField)
+{
+    d->forceField = forceField;
 }
 
 } // end chemkit namespace

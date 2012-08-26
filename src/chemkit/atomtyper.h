@@ -42,7 +42,6 @@
 #include <vector>
 
 #include "plugin.h"
-#include "variant.h"
 
 namespace chemkit {
 
@@ -62,9 +61,12 @@ public:
     const Molecule* molecule() const;
 
     // types
-    virtual Variant type(const Atom *atom) const;
-    virtual int typeNumber(const Atom *atom) const;
-    virtual std::string typeString(const Atom *atom) const;
+    virtual std::string type(const Atom *atom) const;
+
+    // interaction types
+    virtual int bondedInteractionType(const Atom *a, const Atom *b) const;
+    virtual int angleInteractionType(const Atom *a, const Atom *b, const Atom *c) const;
+    virtual int torsionInteractionType(const Atom *a, const Atom *b, const Atom *c, const Atom *d) const;
 
     // predicates
     static bool isCarbonylCarbon(const Atom *atom);
@@ -86,6 +88,7 @@ public:
     // static methods
     static AtomTyper* create(const std::string &name);
     static std::vector<std::string> typers();
+    static bool assignAtomTypes(Molecule *molecule, const std::string &typer);
 
 protected:
     AtomTyper(const std::string &name);

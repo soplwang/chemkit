@@ -36,6 +36,8 @@
 #include <chemkit/plugin.h>
 
 #include "formulalineformat.h"
+#include "htmlformulalineformat.h"
+#include "spacedformulalineformat.h"
 
 class FormulaPlugin : public chemkit::Plugin
 {
@@ -44,6 +46,8 @@ public:
         : chemkit::Plugin("formula")
     {
         CHEMKIT_REGISTER_LINE_FORMAT("formula", FormulaLineFormat);
+        CHEMKIT_REGISTER_LINE_FORMAT("html-formula", HtmlFormulaLineFormat);
+        CHEMKIT_REGISTER_LINE_FORMAT("spaced-formula", SpacedFormulaLineFormat);
     }
 };
 

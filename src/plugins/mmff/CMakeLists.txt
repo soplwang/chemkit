@@ -3,13 +3,12 @@ include_directories(${CHEMKIT_INCLUDE_DIRS})
 
 set(SOURCES
   mmffaromaticitymodel.cpp
-  mmffatom.cpp
   mmffatomtyper.cpp
   mmffcalculation.cpp
   mmffforcefield.cpp
   mmffparameters.cpp
   mmffparametersdata.cpp
-  mmffpartialchargepredictor.cpp
+  mmffpartialchargemodel.cpp
   mmffplugin.cpp
 )
 

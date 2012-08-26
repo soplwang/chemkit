@@ -34,13 +34,16 @@
 ******************************************************************************/
 
 #include "uffcalculation.h"
+
+#include <boost/algorithm/string.hpp>
+
+#include "uffatomtyper.h"
 #include "uffforcefield.h"
 #include "uffparameters.h"
 
-#include <chemkit/atom.h>
-#include <chemkit/bond.h>
-#include <chemkit/molecule.h>
+#include <chemkit/topology.h>
 #include <chemkit/constants.h>
+#include <chemkit/cartesiancoordinates.h>
 
 // === UffCalculation ====================================================== //
 UffCalculation::UffCalculation(int type, int atomCount, int parameterCount)
@@ -49,26 +52,27 @@ UffCalculation::UffCalculation(int type, int atomCount, int parameterCount)
 }
 
 // Returns the parameters for the given atom.
-const UffAtomParameters* UffCalculation::parameters(const chemkit::ForceFieldAtom *atom) const
+const UffAtomParameters* UffCalculation::parameters(const std::string &type) const
 {
     const UffForceField *forceField = static_cast<const UffForceField *>(this->forceField());
-    const UffParameters *parameters = forceField->parameters();
 
-    return parameters->parameters(atom);
+    return forceField->parameters()->parameters(type);
 }
 
 // Returns the bond order of the bond between atom's a and b. If both
 // atoms have a resonant type the bond order returned is 1.5.
 // Otherwise the integer value of the bond order is returned.
-chemkit::Real UffCalculation::bondOrder(const chemkit::ForceFieldAtom *a, const chemkit::ForceFieldAtom *b) const
+chemkit::Real UffCalculation::bondOrder(size_t a, size_t b) const
 {
-    const chemkit::Bond *bond = a->atom()->bondTo(b->atom());
+    const boost::shared_ptr<chemkit::Topology> &topology = this->topology();
 
-    if((a->type().length() > 2 && a->type()[2] == 'R') && (b->type().length() > 2 && b->type()[2] == 'R')){
+    int type = topology->bondedInteractionType(a, b);
+
+    if(type == UffAtomTyper::Resonant){
         return 1.5; // resonant
     }
     else{
-        return bond->order();
+        return type;
     }
 }
 
@@ -85,7 +89,7 @@ chemkit::Real UffCalculation::bondLength(const UffAtomParameters *a, const UffAt
 }
 
 // === UffBondStrechCalculation ============================================ //
-UffBondStrechCalculation::UffBondStrechCalculation(const chemkit::ForceFieldAtom *a, const chemkit::ForceFieldAtom *b)
+UffBondStrechCalculation::UffBondStrechCalculation(size_t a, size_t b)
     : UffCalculation(BondStrech, 2, 2)
 {
     setAtom(0, a);
@@ -94,8 +98,8 @@ UffBondStrechCalculation::UffBondStrechCalculation(const chemkit::ForceFieldAtom
 
 bool UffBondStrechCalculation::setup()
 {
-    const UffAtomParameters *pa = parameters(atom(0));
-    const UffAtomParameters *pb = parameters(atom(1));
+    const UffAtomParameters *pa = parameters(atomType(0));
+    const UffAtomParameters *pb = parameters(atomType(1));
 
     if(!pa || !pb){
         return false;
@@ -117,31 +121,31 @@ bool UffBondStrechCalculation::setup()
     return true;
 }
 
-chemkit::Real UffBondStrechCalculation::energy() const
+chemkit::Real UffBondStrechCalculation::energy(const chemkit::CartesianCoordinates *coordinates) const
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
+    size_t a = atom(0);
+    size_t b = atom(1);
 
     chemkit::Real kb = parameter(0);
     chemkit::Real r0 = parameter(1);
-    chemkit::Real r = distance(a, b);
+    chemkit::Real r = coordinates->distance(a, b);
 
     return 0.5 * kb * pow(r - r0, 2);
 }
 
-std::vector<chemkit::Vector3> UffBondStrechCalculation::gradient() const
+std::vector<chemkit::Vector3> UffBondStrechCalculation::gradient(const chemkit::CartesianCoordinates *coordinates) const
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
+    size_t a = atom(0);
+    size_t b = atom(1);
 
     chemkit::Real kb = parameter(0);
     chemkit::Real r0 = parameter(1);
-    chemkit::Real r = distance(a, b);
+    chemkit::Real r = coordinates->distance(a, b);
 
     // dE/dr
     chemkit::Real de_dr = kb * (r - r0);
 
-    boost::array<chemkit::Vector3, 2> gradient = distanceGradient(a, b);
+    boost::array<chemkit::Vector3, 2> gradient = coordinates->distanceGradient(a, b);
 
     gradient[0] *= de_dr;
     gradient[1] *= de_dr;
@@ -150,9 +154,7 @@ std::vector<chemkit::Vector3> UffBondStrechCalculation::gradient() const
 }
 
 // === UffAngleBendCalculation ============================================= //
-UffAngleBendCalculation::UffAngleBendCalculation(const chemkit::ForceFieldAtom *a,
-                                                 const chemkit::ForceFieldAtom *b,
-                                                 const chemkit::ForceFieldAtom *c)
+UffAngleBendCalculation::UffAngleBendCalculation(size_t a, size_t b, size_t c)
     : UffCalculation(AngleBend, 3, 4)
 {
     setAtom(0, a);
@@ -162,9 +164,9 @@ UffAngleBendCalculation::UffAngleBendCalculation(const chemkit::ForceFieldAtom *
 
 bool UffAngleBendCalculation::setup()
 {
-    const UffAtomParameters *pa = parameters(atom(0));
-    const UffAtomParameters *pb = parameters(atom(1));
-    const UffAtomParameters *pc = parameters(atom(2));
+    const UffAtomParameters *pa = parameters(atomType(0));
+    const UffAtomParameters *pb = parameters(atomType(1));
+    const UffAtomParameters *pc = parameters(atomType(2));
 
     if(!pa || !pb || !pc){
         return false;
@@ -172,11 +174,8 @@ bool UffAngleBendCalculation::setup()
 
     chemkit::Real theta0 = pb->theta * chemkit::constants::DegreesToRadians;
 
-    const chemkit::Bond *bond_ab = atom(0)->atom()->bondTo(atom(1)->atom());
-    const chemkit::Bond *bond_bc = atom(1)->atom()->bondTo(atom(2)->atom());
-
-    chemkit::Real bo_ij = bond_ab->order();
-    chemkit::Real bo_jk = bond_bc->order();
+    chemkit::Real bo_ij = bondOrder(atom(0), atom(1));
+    chemkit::Real bo_jk = bondOrder(atom(1), atom(2));
 
     chemkit::Real r_ab = bondLength(pa, pb, bo_ij);
     chemkit::Real r_bc = bondLength(pb, pc, bo_jk);
@@ -192,7 +191,15 @@ bool UffAngleBendCalculation::setup()
 
     setParameter(0, ka);
 
-    chemkit::Real c2 = 1 / (4 * pow(sin(theta0), 2));
+    chemkit::Real sinTheta0 = sin(theta0);
+
+    // clamp sin(theta0) to 1e-3 because for some atoms theta0 == pi which
+    // would lead to a division by zero error when calculating c2 below
+    if(std::abs(sinTheta0) < 1e-3){
+        sinTheta0 = 1e-3;
+    }
+
+    chemkit::Real c2 = 1 / (4 * pow(sinTheta0, 2));
     chemkit::Real c1 = -4 * c2 * cos(theta0);
     chemkit::Real c0 = c2 * (2 * pow(cos(theta0), 2) + 1);
 
@@ -203,38 +210,38 @@ bool UffAngleBendCalculation::setup()
     return true;
 }
 
-chemkit::Real UffAngleBendCalculation::energy() const
+chemkit::Real UffAngleBendCalculation::energy(const chemkit::CartesianCoordinates *coordinates) const
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
-    const chemkit::ForceFieldAtom *c = atom(2);
+    size_t a = atom(0);
+    size_t b = atom(1);
+    size_t c = atom(2);
 
     chemkit::Real ka = parameter(0);
     chemkit::Real c0 = parameter(1);
     chemkit::Real c1 = parameter(2);
     chemkit::Real c2 = parameter(3);
 
-    chemkit::Real theta = bondAngleRadians(a, b, c);
+    chemkit::Real theta = coordinates->angleRadians(a, b, c);
 
     return ka * (c0 + (c1 * cos(theta)) + (c2 * cos(2*theta)));
 }
 
-std::vector<chemkit::Vector3> UffAngleBendCalculation::gradient() const
+std::vector<chemkit::Vector3> UffAngleBendCalculation::gradient(const chemkit::CartesianCoordinates *coordinates) const
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
-    const chemkit::ForceFieldAtom *c = atom(2);
+    size_t a = atom(0);
+    size_t b = atom(1);
+    size_t c = atom(2);
 
     chemkit::Real ka = parameter(0);
     chemkit::Real c1 = parameter(2);
     chemkit::Real c2 = parameter(3);
 
-    chemkit::Real theta = bondAngleRadians(a, b, c);
+    chemkit::Real theta = coordinates->angleRadians(a, b, c);
 
     // dE/dtheta
     chemkit::Real de_dtheta = -ka * (c1 * sin(theta) + 2 * c2 * sin(2 * theta));
 
-    boost::array<chemkit::Vector3, 3> gradient = bondAngleGradientRadians(a, b, c);
+    boost::array<chemkit::Vector3, 3> gradient = coordinates->angleGradientRadians(a, b, c);
 
     gradient[0] *= de_dtheta;
     gradient[1] *= de_dtheta;
@@ -244,10 +251,7 @@ std::vector<chemkit::Vector3> UffAngleBendCalculation::gradient() const
 }
 
 // === UffTorsionCalculation =============================================== //
-UffTorsionCalculation::UffTorsionCalculation(const chemkit::ForceFieldAtom *a,
-                                             const chemkit::ForceFieldAtom *b,
-                                             const chemkit::ForceFieldAtom *c,
-                                             const chemkit::ForceFieldAtom *d)
+UffTorsionCalculation::UffTorsionCalculation(size_t a, size_t b, size_t c, size_t d)
     : UffCalculation(Torsion, 4, 3)
 {
     setAtom(0, a);
@@ -259,30 +263,34 @@ UffTorsionCalculation::UffTorsionCalculation(const chemkit::ForceFieldAtom *a,
 bool UffTorsionCalculation::setup()
 {
     UffForceField *forceField = static_cast<UffForceField *>(this->forceField());
+    const boost::shared_ptr<chemkit::Topology> &topology = this->topology();
 
-    const chemkit::ForceFieldAtom *b = atom(1);
-    const chemkit::ForceFieldAtom *c = atom(2);
+    size_t b = atom(1);
+    size_t c = atom(2);
 
-    if(b->type().length() < 3 || c->type().length() < 3){
+    std::string typeB = topology->type(b);
+    std::string typeC = topology->type(c);
+
+    if(typeB.length() < 3 || typeC.length() < 3){
         return false;
     }
 
-    const UffAtomParameters *pb = parameters(b);
-    const UffAtomParameters *pc = parameters(c);
+    const UffAtomParameters *pb = parameters(typeB);
+    const UffAtomParameters *pc = parameters(typeC);
 
     chemkit::Real V = 0;
     chemkit::Real n = 0;
     chemkit::Real phi0 = 0;
 
     // sp3-sp3
-    if(b->type()[2] == '3' && c->type()[2] == '3'){
+    if(typeB[2] == '3' && typeC[2] == '3'){
 
         // exception for two group six atoms
-        if(forceField->isGroupSix(b) && forceField->isGroupSix(c)){
-            if(b->atom()->is(chemkit::Atom::Oxygen) && c->atom()->is(chemkit::Atom::Oxygen)){
+        if(forceField->isGroupSix(atom(1)) && forceField->isGroupSix(atom(2))){
+            if(boost::starts_with(typeB, "O_") && boost::starts_with(typeC, "O_")){
                 V = 2; // sqrt(2*2)
             }
-            else if(b->atom()->is(chemkit::Atom::Oxygen) || c->atom()->is(chemkit::Atom::Oxygen)){
+            else if(boost::starts_with(typeB, "O_") || boost::starts_with(typeC, "O_")){
                 V = sqrt(2 * 6.8);
             }
             else{
@@ -303,7 +311,7 @@ bool UffTorsionCalculation::setup()
         }
     }
     // sp2-sp2
-    else if((b->type()[2] == '2' || b->type()[2] == 'R') && (c->type()[2] == '2' || c->type()[2] == 'R')){
+    else if((typeB[2] == '2' || typeB[2] == 'R') && (typeC[2] == '2' || typeC[2] == 'R')){
         chemkit::Real bondorder = bondOrder(b, c);
 
         // equation 17
@@ -313,8 +321,8 @@ bool UffTorsionCalculation::setup()
         phi0 = 180 * chemkit::constants::DegreesToRadians;
     }
     // group 6 sp3 - any sp2 or R
-    else if((forceField->isGroupSix(b) && (c->type()[2] == '2' || c->type()[2] == 'R')) ||
-            (forceField->isGroupSix(c) && (b->type()[2] == '2' || b->type()[2] == 'R'))){
+    else if((forceField->isGroupSix(b) && (typeC[2] == '2' || typeC[2] == 'R')) ||
+            (forceField->isGroupSix(c) && (typeB[2] == '2' || typeB[2] == 'R'))){
         chemkit::Real bondorder = bondOrder(b, c);
 
         // equation 17
@@ -324,8 +332,8 @@ bool UffTorsionCalculation::setup()
         phi0 = 90 * chemkit::constants::DegreesToRadians;
     }
     // sp3-sp2
-    else if((b->type()[2] == '3' && (c->type()[2] == '2' || c->type()[2] == 'R')) ||
-            (c->type()[2] == '3' && (b->type()[2] == '2' || b->type()[2] == 'R'))){
+    else if((typeB[2] == '3' && (typeC[2] == '2' || typeC[2] == 'R')) ||
+            (typeC[2] == '3' && (typeB[2] == '2' || typeB[2] == 'R'))){
         V = 1;
         n = 6;
         phi0 = 0;
@@ -341,39 +349,39 @@ bool UffTorsionCalculation::setup()
     return true;
 }
 
-chemkit::Real UffTorsionCalculation::energy() const
+chemkit::Real UffTorsionCalculation::energy(const chemkit::CartesianCoordinates *coordinates) const
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
-    const chemkit::ForceFieldAtom *c = atom(2);
-    const chemkit::ForceFieldAtom *d = atom(3);
+    size_t a = atom(0);
+    size_t b = atom(1);
+    size_t c = atom(2);
+    size_t d = atom(3);
 
     chemkit::Real V = parameter(0);
     chemkit::Real n = parameter(1);
     chemkit::Real phi0 = parameter(2);
 
-    chemkit::Real phi = torsionAngleRadians(a, b, c, d);
+    chemkit::Real phi = coordinates->torsionAngleRadians(a, b, c, d);
 
     return 0.5 * V * (1 - cos(n * phi0) * cos(n * phi));
 }
 
-std::vector<chemkit::Vector3> UffTorsionCalculation::gradient() const
+std::vector<chemkit::Vector3> UffTorsionCalculation::gradient(const chemkit::CartesianCoordinates *coordinates) const
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
-    const chemkit::ForceFieldAtom *c = atom(2);
-    const chemkit::ForceFieldAtom *d = atom(3);
+    size_t a = atom(0);
+    size_t b = atom(1);
+    size_t c = atom(2);
+    size_t d = atom(3);
 
     chemkit::Real V = parameter(0);
     chemkit::Real n = parameter(1);
     chemkit::Real phi0 = parameter(2);
 
-    chemkit::Real phi = torsionAngleRadians(a, b, c, d);
+    chemkit::Real phi = coordinates->torsionAngleRadians(a, b, c, d);
 
     // dE/dphi
     chemkit::Real de_dphi = 0.5 * V * n * cos(n * phi0) * sin(n * phi);
 
-    boost::array<chemkit::Vector3, 4> gradient = torsionAngleGradientRadians(a, b, c, d);
+    boost::array<chemkit::Vector3, 4> gradient = coordinates->torsionAngleGradientRadians(a, b, c, d);
 
     gradient[0] *= de_dphi;
     gradient[1] *= de_dphi;
@@ -384,10 +392,7 @@ std::vector<chemkit::Vector3> UffTorsionCalculation::gradient() const
 }
 
 // === UffInversionCalculation ============================================= //
-UffInversionCalculation::UffInversionCalculation(const chemkit::ForceFieldAtom *a,
-                                                 const chemkit::ForceFieldAtom *b,
-                                                 const chemkit::ForceFieldAtom *c,
-                                                 const chemkit::ForceFieldAtom *d)
+UffInversionCalculation::UffInversionCalculation(size_t a, size_t b, size_t c, size_t d)
     : UffCalculation(Inversion, 4, 4)
 {
     setAtom(0, a);
@@ -398,11 +403,19 @@ UffInversionCalculation::UffInversionCalculation(const chemkit::ForceFieldAtom *
 
 bool UffInversionCalculation::setup()
 {
+    const boost::shared_ptr<chemkit::Topology> &topology = this->topology();
+
     // b is the center atom
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
-    const chemkit::ForceFieldAtom *c = atom(2);
-    const chemkit::ForceFieldAtom *d = atom(3);
+    size_t a = atom(0);
+    size_t b = atom(1);
+    size_t c = atom(2);
+    size_t d = atom(3);
+
+    std::string typeA = topology->type(a);
+    std::string typeB = topology->type(b);
+    std::string typeC = topology->type(c);
+    std::string typeD = topology->type(d);
+
 
     chemkit::Real k = 0;
     chemkit::Real c0 = 0;
@@ -410,8 +423,8 @@ bool UffInversionCalculation::setup()
     chemkit::Real c2 = 0;
 
     // sp2 carbon
-    if(b->type() == "C_2" || b->type() == "C_R"){
-        if(a->type() == "O_2" || c->type() == "O_2" || d->type() == "O_2"){
+    if(typeB == "C_2" || typeB == "C_R"){
+        if(typeA == "O_2" || typeC == "O_2" || typeD == "O_2"){
             k = 50;
         }
         else{
@@ -434,42 +447,42 @@ bool UffInversionCalculation::setup()
     return true;
 }
 
-chemkit::Real UffInversionCalculation::energy() const
+chemkit::Real UffInversionCalculation::energy(const chemkit::CartesianCoordinates *coordinates) const
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
-    const chemkit::ForceFieldAtom *c = atom(2);
-    const chemkit::ForceFieldAtom *d = atom(3);
+    size_t a = atom(0);
+    size_t b = atom(1);
+    size_t c = atom(2);
+    size_t d = atom(3);
 
     chemkit::Real k = parameter(0);
     chemkit::Real c0 = parameter(1);
     chemkit::Real c1 = parameter(2);
     chemkit::Real c2 = parameter(3);
 
-    chemkit::Real w = wilsonAngleRadians(a, b, c, d);
+    chemkit::Real w = coordinates->wilsonAngleRadians(a, b, c, d);
     chemkit::Real y = w + (chemkit::constants::Pi / 2.0);
 
     return k * (c0 + c1 * sin(y) + c2 * cos(2 * y));
 }
 
-std::vector<chemkit::Vector3> UffInversionCalculation::gradient() const
+std::vector<chemkit::Vector3> UffInversionCalculation::gradient(const chemkit::CartesianCoordinates *coordinates) const
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
-    const chemkit::ForceFieldAtom *c = atom(2);
-    const chemkit::ForceFieldAtom *d = atom(3);
+    size_t a = atom(0);
+    size_t b = atom(1);
+    size_t c = atom(2);
+    size_t d = atom(3);
 
     chemkit::Real k = parameter(0);
     chemkit::Real c1 = parameter(2);
     chemkit::Real c2 = parameter(3);
 
-    chemkit::Real w = wilsonAngleRadians(a, b, c, d);
+    chemkit::Real w = coordinates->wilsonAngleRadians(a, b, c, d);
     chemkit::Real y = w + (chemkit::constants::Pi / 2.0);
 
     // dE/dw
     chemkit::Real de_dw = k * (c1 * cos(y) - 2 * c2 * sin(2 * y));
 
-    boost::array<chemkit::Vector3, 4> gradient = wilsonAngleGradientRadians(a, b, c, d);
+    boost::array<chemkit::Vector3, 4> gradient = coordinates->wilsonAngleGradientRadians(a, b, c, d);
 
     gradient[0] *= de_dw;
     gradient[1] *= de_dw;
@@ -480,8 +493,7 @@ std::vector<chemkit::Vector3> UffInversionCalculation::gradient() const
 }
 
 // === UffVanDerWaalsCalculation =========================================== //
-UffVanDerWaalsCalculation::UffVanDerWaalsCalculation(const chemkit::ForceFieldAtom *a,
-                                                     const chemkit::ForceFieldAtom *b)
+UffVanDerWaalsCalculation::UffVanDerWaalsCalculation(size_t a, size_t b)
     : UffCalculation(VanDerWaals, 2, 2)
 {
     setAtom(0, a);
@@ -490,12 +502,8 @@ UffVanDerWaalsCalculation::UffVanDerWaalsCalculation(const chemkit::ForceFieldAt
 
 bool UffVanDerWaalsCalculation::setup()
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
-
-    const UffAtomParameters *pa = parameters(a);
-    const UffAtomParameters *pb = parameters(b);
-
+    const UffAtomParameters *pa = parameters(atomType(0));
+    const UffAtomParameters *pb = parameters(atomType(1));
     if(!pa || !pb){
         return false;
     }
@@ -512,31 +520,31 @@ bool UffVanDerWaalsCalculation::setup()
     return true;
 }
 
-chemkit::Real UffVanDerWaalsCalculation::energy() const
+chemkit::Real UffVanDerWaalsCalculation::energy(const chemkit::CartesianCoordinates *coordinates) const
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
+    size_t a = atom(0);
+    size_t b = atom(1);
 
     chemkit::Real d = parameter(0);
     chemkit::Real x = parameter(1);
-    chemkit::Real r = distance(a, b);
+    chemkit::Real r = coordinates->distance(a, b);
 
     return d * (-2 * pow(x/r, 6) + pow(x/r, 12));
 }
 
-std::vector<chemkit::Vector3> UffVanDerWaalsCalculation::gradient() const
+std::vector<chemkit::Vector3> UffVanDerWaalsCalculation::gradient(const chemkit::CartesianCoordinates *coordinates) const
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
+    size_t a = atom(0);
+    size_t b = atom(1);
 
     chemkit::Real d = parameter(0);
     chemkit::Real x = parameter(1);
-    chemkit::Real r = distance(a, b);
+    chemkit::Real r = coordinates->distance(a, b);
 
     // dE/dr
     chemkit::Real de_dr = -12 * d * x / pow(r, 2) * (pow(x/r, 11) - pow(x/r, 5));
 
-    boost::array<chemkit::Vector3, 2> gradient = distanceGradient(a, b);
+    boost::array<chemkit::Vector3, 2> gradient = coordinates->distanceGradient(a, b);
 
     gradient[0] *= de_dr;
     gradient[1] *= de_dr;
@@ -545,8 +553,7 @@ std::vector<chemkit::Vector3> UffVanDerWaalsCalculation::gradient() const
 }
 
 // === UffElectrostaticCalculation ========================================= //
-UffElectrostaticCalculation::UffElectrostaticCalculation(const chemkit::ForceFieldAtom *a,
-                                                         const chemkit::ForceFieldAtom *b)
+UffElectrostaticCalculation::UffElectrostaticCalculation(size_t a, size_t b)
     : UffCalculation(Electrostatic, 2, 2)
 {
     setAtom(0, a);
@@ -558,16 +565,16 @@ bool UffElectrostaticCalculation::setup()
     return false;
 }
 
-chemkit::Real UffElectrostaticCalculation::energy() const
+chemkit::Real UffElectrostaticCalculation::energy(const chemkit::CartesianCoordinates *coordinates) const
 {
-    const chemkit::ForceFieldAtom *a = atom(0);
-    const chemkit::ForceFieldAtom *b = atom(1);
+    size_t a = atom(0);
+    size_t b = atom(1);
 
     chemkit::Real qa = parameter(0);
     chemkit::Real qb = parameter(1);
 
     chemkit::Real e = 1;
-    chemkit::Real r = distance(a, b);
+    chemkit::Real r = coordinates->distance(a, b);
 
     return 332.037 * (qa * qb) / (e * r);
 }

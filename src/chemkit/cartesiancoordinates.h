@@ -87,6 +87,7 @@ public:
     Point3 weightedCenter(const std::vector<Real> &weights) const;
     void moveBy(const Vector3 &vector);
     void moveBy(Real x, Real y, Real z);
+    void rotate(const Vector3 &axis, Real angle);
     Matrix distanceMatrix() const;
 
     // derivatives
@@ -107,6 +108,8 @@ public:
     CartesianCoordinates operator+(const CartesianCoordinates &coordinates) const;
     CartesianCoordinates operator-(const CartesianCoordinates &coordinates) const;
     CartesianCoordinates& operator=(const CartesianCoordinates &coordinates);
+    Point3& operator[](size_t index);
+    const Point3& operator[](size_t index) const;
 
 private:
     std::vector<Point3> m_coordinates;

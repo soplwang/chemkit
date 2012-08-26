@@ -52,41 +52,41 @@ protected:
 class AmberBondCalculation : public AmberCalculation
 {
 public:
-    AmberBondCalculation(const chemkit::ForceFieldAtom *a, const chemkit::ForceFieldAtom *b);
+    AmberBondCalculation(size_t a, size_t b);
 
     bool setup(const AmberParameters *parameters);
-    chemkit::Real energy() const;
-    std::vector<chemkit::Vector3> gradient() const;
+    chemkit::Real energy(const chemkit::CartesianCoordinates *coordinates) const CHEMKIT_OVERRIDE;
+    std::vector<chemkit::Vector3> gradient(const chemkit::CartesianCoordinates *coordinates) const CHEMKIT_OVERRIDE;
 };
 
 class AmberAngleCalculation : public AmberCalculation
 {
 public:
-    AmberAngleCalculation(const chemkit::ForceFieldAtom *a, const chemkit::ForceFieldAtom *b, const chemkit::ForceFieldAtom *c);
+    AmberAngleCalculation(size_t a, size_t b, size_t c);
 
     bool setup(const AmberParameters *parameters);
-    chemkit::Real energy() const;
-    std::vector<chemkit::Vector3> gradient() const;
+    chemkit::Real energy(const chemkit::CartesianCoordinates *coordinates) const CHEMKIT_OVERRIDE;
+    std::vector<chemkit::Vector3> gradient(const chemkit::CartesianCoordinates *coordinates) const CHEMKIT_OVERRIDE;
 };
 
 class AmberTorsionCalculation : public AmberCalculation
 {
 public:
-    AmberTorsionCalculation(const chemkit::ForceFieldAtom *a, const chemkit::ForceFieldAtom *b, const chemkit::ForceFieldAtom *c, const chemkit::ForceFieldAtom *d);
+    AmberTorsionCalculation(size_t a, size_t b, size_t c, size_t d);
 
     bool setup(const AmberParameters *parameters);
-    chemkit::Real energy() const;
-    std::vector<chemkit::Vector3> gradient() const;
+    chemkit::Real energy(const chemkit::CartesianCoordinates *coordinates) const CHEMKIT_OVERRIDE;
+    std::vector<chemkit::Vector3> gradient(const chemkit::CartesianCoordinates *coordinates) const CHEMKIT_OVERRIDE;
 };
 
 class AmberNonbondedCalculation : public AmberCalculation
 {
 public:
-    AmberNonbondedCalculation(const chemkit::ForceFieldAtom *a, const chemkit::ForceFieldAtom *b);
+    AmberNonbondedCalculation(size_t a, size_t b);
 
     bool setup(const AmberParameters *parameters);
-    chemkit::Real energy() const;
-    std::vector<chemkit::Vector3> gradient() const;
+    chemkit::Real energy(const chemkit::CartesianCoordinates *coordinates) const CHEMKIT_OVERRIDE;
+    std::vector<chemkit::Vector3> gradient(const chemkit::CartesianCoordinates *coordinates) const CHEMKIT_OVERRIDE;
 };
 
 #endif // AMBERCALCULATION_H

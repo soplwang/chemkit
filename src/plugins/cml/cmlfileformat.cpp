@@ -35,8 +35,6 @@
 
 #include "cmlfileformat.h"
 
-#include "../../3rdparty/rapidxml/rapidxml.hpp"
-
 #include <boost/make_shared.hpp>
 
 #include <chemkit/atom.h>
@@ -49,10 +47,6 @@
 
 CmlFileFormat::CmlFileFormat()
     : chemkit::MoleculeFileFormat("cml")
-{
-}
-
-CmlFileFormat::~CmlFileFormat()
 {
 }
 
@@ -72,6 +66,29 @@ bool CmlFileFormat::read(std::istream &input, chemkit::MoleculeFile *file)
         return false;
     }
 
+    return readXML(doc, file);
+}
+
+bool CmlFileFormat::readMappedFile(const boost::iostreams::mapped_file_source &input, chemkit::MoleculeFile *file)
+{
+    // read file data into a string
+    std::string data(input.data(), input.size());
+
+    // parse document
+    rapidxml::xml_document<> doc;
+    try {
+        doc.parse<0>(const_cast<char *>(data.c_str()));
+    }
+    catch(rapidxml::parse_error &e){
+        setErrorString(std::string("XML parse error: ") + e.what());
+        return false;
+    }
+
+    return readXML(doc, file);
+}
+
+bool CmlFileFormat::readXML(const rapidxml::xml_document<> &doc, chemkit::MoleculeFile *file)
+{
     // parse molecules
     boost::shared_ptr<chemkit::Molecule> molecule;
     rapidxml::xml_node<> *moleculeNode = doc.first_node("molecule");
@@ -177,6 +194,70 @@ bool CmlFileFormat::read(std::istream &input, chemkit::MoleculeFile *file)
         if(diagramCoordinates){
             molecule->addCoordinateSet(diagramCoordinates);
             diagramCoordinates = 0;
+        }
+
+        // add molecule property data
+        rapidxml::xml_node<> *propertyListNode = moleculeNode->first_node("propertyList");
+        if(!propertyListNode){
+            // in some files the propertyList node is stored within a list node
+            rapidxml::xml_node<> *listNode = moleculeNode->first_node("list");
+            if(listNode){
+                propertyListNode = listNode->first_node("propertyList");
+            }
+        }
+
+        if(propertyListNode){
+            rapidxml::xml_node<> *propertyNode = propertyListNode->first_node("property");
+            while(propertyNode){
+                // get the name for the property from the title attribute
+                rapidxml::xml_attribute<> *titleAttr = propertyNode->first_attribute("title");
+                if(!titleAttr){
+                    propertyNode = propertyNode->next_sibling("property");
+                    continue;
+                }
+
+                std::string title = titleAttr->value();
+
+                // get the value for the property
+                rapidxml::xml_node<> *scalarNode = propertyNode->first_node("scalar");
+                if(scalarNode && scalarNode->value_size()){
+                    // determine the scalar data type
+                    std::string dataType;
+                    rapidxml::xml_attribute<> *dataTypeAttr = scalarNode->first_attribute("dataType");
+                    if(dataTypeAttr && dataTypeAttr->value_size()){
+                        dataType = dataTypeAttr->value();
+                    }
+
+                    // parse the data value
+                    chemkit::Variant value;
+                    std::string valueString = scalarNode->value();
+                    try {
+                        if(dataType == "xsd:decimal" || dataType == "xsd:double"){
+                            value = boost::lexical_cast<double>(valueString);
+                        }
+                        else if(dataType == "xsd:float"){
+                            value = boost::lexical_cast<float>(valueString);
+                        }
+                        else if(dataType == "xsd:integer"){
+                            value = boost::lexical_cast<int>(valueString);
+                        }
+                        else{
+                            // unknown data type, so store the value as a string
+                            value = valueString;
+                        }
+                    }
+                    catch(boost::bad_lexical_cast &){
+                        // failed to parse the value, so store the value as a string
+                        value = valueString;
+                    }
+
+                    // set the data value
+                    molecule->setData(title, value);
+                }
+
+                // move to the next property node
+                propertyNode = propertyNode->next_sibling("property");
+            }
         }
 
         // add molecule to file

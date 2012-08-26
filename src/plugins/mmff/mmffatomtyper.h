@@ -39,6 +39,7 @@
 #include <vector>
 
 #include <chemkit/ring.h>
+#include <chemkit/element.h>
 #include <chemkit/atomtyper.h>
 
 class MmffAtomTyper : public chemkit::AtomTyper
@@ -52,11 +53,20 @@ public:
     void setMolecule(const chemkit::Molecule *molecule) CHEMKIT_OVERRIDE;
 
     // types
-    int typeNumber(const chemkit::Atom *atom) const CHEMKIT_OVERRIDE;
+    std::string type(const chemkit::Atom *atom) const CHEMKIT_OVERRIDE;
+    int typeNumber(const chemkit::Atom *atom) const;
+
+    // interaction types
+    int bondedInteractionType(const chemkit::Atom *a, const chemkit::Atom *b) const CHEMKIT_OVERRIDE;
+    int angleInteractionType(const chemkit::Atom *a, const chemkit::Atom *b, const chemkit::Atom *c) const CHEMKIT_OVERRIDE;
+    int torsionInteractionType(const chemkit::Atom *a, const chemkit::Atom *b, const chemkit::Atom *c, const chemkit::Atom *d) const CHEMKIT_OVERRIDE;
 
     // charges
     chemkit::Real formalCharge(int index) const;
     chemkit::Real formalCharge(const chemkit::Atom *atom) const;
+
+    // static methods
+    static chemkit::Element typeToElement(int type);
 
 private:
     void setType(int index, int type, chemkit::Real formalCharge = 0);

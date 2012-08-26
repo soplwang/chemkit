@@ -284,6 +284,22 @@ void CartesianCoordinates::moveBy(Real x, Real y, Real z)
     moveBy(Vector3(x, y, z));
 }
 
+/// Rotates the coordinates by \p angle degrees around \p axis.
+void CartesianCoordinates::rotate(const Vector3 &axis, Real angle)
+{
+    // convert angle to radians
+    angle *= chemkit::constants::DegreesToRadians;
+
+    // build rotation transform
+    Eigen::Matrix<Real, 3, 1> axisVector(axis.x(), axis.y(), axis.z());
+    Eigen::Transform<Real, 3, 3> transform(Eigen::AngleAxis<Real>(angle, axisVector));
+
+    // rotate each point
+    for(size_t i = 0; i < m_coordinates.size(); i++){
+        setPosition(i, transform * position(i));
+    }
+}
+
 /// Returns a matrix containing the distances between each pair of
 /// points in the coordinates.
 Matrix CartesianCoordinates::distanceMatrix() const
@@ -435,6 +451,18 @@ CartesianCoordinates& CartesianCoordinates::operator=(const CartesianCoordinates
     }
 
     return *this;
+}
+
+/// Returns the position at \p index.
+Point3& CartesianCoordinates::operator[](size_t index)
+{
+    return m_coordinates[index];
+}
+
+/// \overload
+const Point3& CartesianCoordinates::operator[](size_t index) const
+{
+    return m_coordinates[index];
 }
 
 } // end chemkit namespace

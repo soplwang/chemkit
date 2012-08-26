@@ -40,6 +40,10 @@
 #include "amberatomtyper.h"
 #include "amberforcefield.h"
 
+#ifdef CHEMKIT_WITH_MD_IO
+#include "mdcrdfileformat.h"
+#endif
+
 class AmberPlugin : public chemkit::Plugin
 {
 public:
@@ -49,6 +53,11 @@ public:
         CHEMKIT_REGISTER_ATOM_TYPER("amber", AmberAtomTyper);
         CHEMKIT_REGISTER_FORCE_FIELD("amber", AmberForceField);
         registerPluginClass<chemkit::MolecularDescriptor>("amber-energy", createAmberEnergyDescriptor);
+
+        #ifdef CHEMKIT_WITH_MD_IO
+        CHEMKIT_REGISTER_TRAJECTORY_FILE_FORMAT("mdcrd", MdcrdFileFormat);
+        CHEMKIT_REGISTER_TRAJECTORY_FILE_FORMAT("trj", MdcrdFileFormat);
+        #endif
     }
 
     static chemkit::MolecularDescriptor* createAmberEnergyDescriptor()
