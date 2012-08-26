@@ -25,24 +25,18 @@ Z* -------------------------------------------------------------------
 #include "Triangle.h"
 #include "Vector.h"
 
-// MSKIT
 #include "SurfaceJob.h"
 #include "SolventDot.h"
 
-void SurfaceJobPurgeResult(MSKContext * G, SurfaceJob * I)
+static void SurfaceJobPurgeResult(MSKContext * G, SurfaceJob * I)
 {
   I->N  = 0;
   I->NT = 0;
   VLAFreeP(I->V);
   VLAFreeP(I->VN);
+  FreeP(I->VO);
   VLAFreeP(I->T);
   VLAFreeP(I->S);
-  FreeP(I->VC);
-  FreeP(I->VA);
-  I->oneColorFlag = true;
-  I->oneAlphaFlag = true;
-  I->oneColor = -1;
-  I->oneAlpha = -1.0F;
 }
 
 SurfaceJob *SurfaceJobNew(MSKContext * G,
@@ -69,10 +63,6 @@ SurfaceJob *SurfaceJobNew(MSKContext * G,
   	I->cavityMode = cavity_mode;
   	I->cavityRadius = cavity_radius;
   	I->cavityCutoff = cavity_cutoff;
-    I->oneColorFlag = true;
-    I->oneAlphaFlag = true;
-    I->oneColor = -1;
-    I->oneAlpha = -1.0F;
 
 #define SURFACE_QUALITY_BEST_SEP       0.25F
 #define SURFACE_QUALITY_NORMAL_SEP     0.5F
@@ -169,18 +159,13 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
   SphereRec *sp = G->Sphere->Sphere[I->sphereIndex];
   SphereRec *ssp = G->Sphere->Sphere[I->solventSphereIndex];
 
-  MSKContextClean(G);
-  G->Ready = false;
-
-  OrthoBusyStage(G, 0);
-
   SurfaceJobPurgeResult(G, I);
 
   {
     /* compute limiting storage requirements */
     int tmp = n_present;
     if(tmp < 1)
-      tmp = 1;
+      tmp = n_index;
     if(sp->nDot < ssp->nDot)
       MaxN = tmp * ssp->nDot;
     else
@@ -210,6 +195,8 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
     float *I_coord = I->coord;
     int *present_vla = I->presentVla;
     SurfaceJobAtomInfo *I_atom_info = I->atomInfo;
+
+    OrthoBusyStage(G, 0);
 
     I->N = 0;
 
@@ -878,135 +865,66 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
       VLASizeForSure(I->V, float, 1);
       VLASizeForSure(I->VN, float, 1);
     }
+
+    if(G->Interrupt)
+      ok = false;
   }
-  
-  G->Ready = true;
 
   return ok;
 }
 
-void SurfaceJobColoring(MSKContext *G, SurfaceJob * I, const int *colors, const float *transp)
+int SurfaceJobOwnership(MSKContext *G, SurfaceJob *I)
 {
-  SurfaceJobAtomInfo *ai2 = NULL;
   MapType *map;
-  int a, i0, i, j;
-  int c0, c1, *vc;
-  float a0, a1, *va;
-  float *v0, *n0;
-  float probe_radius;
+  float *vv;
+  int *vo;
   float dist;
+  int a, i0, i, j;
 
-  /* assert(colors != NULL); */
+  /* prevent recalculate... */
+  if(I->VO)
+    return false;
 
-  probe_radius = I->probeRadius;
-  ai2 = I->atomInfo;
+  I->VO = Alloc(int, I->N);
+  if(!I->VO)
+    return false;
 
-  if(I->N) {
-    I->oneColorFlag = true;
-    I->oneAlphaFlag = true;
-    I->oneColor = -1;
-    I->oneAlpha = -1.0F;
+  /* now, assign ownership to each point */
+  map = MapNewFlagged(G, 2 * I->maxVdw + I->probeRadius,
+                      I->coord, VLAGetSize(I->coord) / 3, NULL, NULL);
+  if(!map)
+    return false;
 
-    if(!I->VC)
-      I->VC = Alloc(int, I->N);
-    vc = I->VC;
+  MapSetupExpress(map);
+  vv = I->V;
+  vo = I->VO;
 
-    if (transp) {
-      if(!I->VA)
-        I->VA = Alloc(float, I->N);
-      va = I->VA;
-    }
+  for(a = 0; a < I->N; a++) {
+    SurfaceJobAtomInfo *ai = NULL;
+    float minDist = MAXFLOAT;
 
-    c0 = -1;
-    a0 = -1.0F;
+    /* ownership */
+    i0 = -1;
+    i = *(MapLocusEStart(map, vv));
 
-    /* now, assign colors to each point */
-    map = MapNewFlagged(G, 2 * I->maxVdw + probe_radius,
-                        I->coord, VLAGetSize(I->coord) / 3, NULL, NULL);
-
-    if(map) {
-      MapSetupExpress(map);
-
-      for(a = 0; a < I->N; a++) {
-        SurfaceJobAtomInfo *ai0 = NULL;
-        float minDist = MAXFLOAT;
-
-        v0 = I->V + 3 * a;
-        n0 = I->VN + 3 * a;
-        i0 = -1;
-
-        /* colors */
-        i = *(MapLocusEStart(map, v0));
-        if(i) {
-          j = map->EList[i++];
-          while(j >= 0) {
-            ai2 = I->atomInfo + j;
-            dist = (float) diff3f(v0, I->coord + j * 3) - ai2->vdw;
-            if(dist < minDist) {
-              i0 = j;
-              ai0 = ai2;
-              minDist = dist;
-            }
-            j = map->EList[i++];
-          }
+    if(i) {
+      j = map->EList[i++];
+      while(j >= 0) {
+        ai = I->atomInfo + j;
+        dist = (float) diff3f(vv, I->coord + j * 3) - ai->vdw;
+        if(dist < minDist) {
+          i0 = j;
+          minDist = dist;
         }
-
-        c1 = (i0 >= 0)
-                ? *(colors + i0)
-                : -1;
-        *(vc++) = c1;
-
-        if(I->oneColorFlag) {
-          if(c0 >= 0) {
-            if(c0 != c1)
-              I->oneColorFlag = false;
-          } else
-            c0 = c1;
-        }
-
-        if (transp) {
-          a1 = (i0 >= 0)
-                  ? (1.0F - *(transp + i0))
-                  : -1.0F;
-          *(va++) = a1;
-
-          if(I->oneAlphaFlag) {
-            if(a0 >= 0) {
-              if(a0 != a1)
-                I->oneAlphaFlag = false;
-            } else
-              a0 = a1;
-          }
-        }
-      }
-
-      MapFree(map);
-    }
-
-    if(I->oneAlphaFlag) {
-      I->oneAlpha = a0;
-      if(I->VA) {
-        FreeP(I->VA);
-        I->VA = NULL;
+        j = map->EList[i++];
       }
     }
-    else
-      I->oneColorFlag = false;
 
-    if(I->oneColorFlag) {
-      I->oneColor = c0;
-      if(I->VC) {
-        FreeP(I->VC);
-        I->VC = NULL;
-      }
-    }
+    *(vo++) = i0;
+    vv += 3;
   }
 
-  /*
-     if(surface_color>=0) {
-     I->oneColorFlag=true;
-     I->oneColor=surface_color;
-     }
-   */
+  MapFree(map);
 
+  return true;
 }

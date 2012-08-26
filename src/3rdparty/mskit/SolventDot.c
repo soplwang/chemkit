@@ -26,7 +26,6 @@ Z* -------------------------------------------------------------------
 #include "Vector.h"
 #include "Err.h"
 
-// MSKIT
 #include "SurfaceJob.h"
 #include "SolventDot.h"
 

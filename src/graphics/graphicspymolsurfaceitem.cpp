@@ -38,8 +38,6 @@
 #include <algorithm>
 #include <boost/make_shared.hpp>
 
-#include <boost/make_shared.hpp>
-
 #include <chemkit/atom.h>
 #include <chemkit/element.h>
 #include <chemkit/foreach.h>
@@ -71,7 +69,7 @@ public:
 
 GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
                                        const std::vector<Real>& radii,
-                                       const std::vector<int>& atomTypes,
+                                       const std::vector<Element>& elements,
                                        Real max_vdw, Real probe_radius,
                                        int surface_quality, int surface_type, int surface_solvent,
                                        const AtomColorMap& colorMap, float opacity)
@@ -130,32 +128,21 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
             buffer->setIndices(indices);
 
             // apply colors
-            if(!atomTypes.empty()) {
-                SurfaceJobColoring(_ctx_holder.ctx,
-                                   job,
-                                   atomTypes.data(),
-                                   NULL);
-
+            if(!elements.empty() && SurfaceJobOwnership(_ctx_holder.ctx, job)) {
                 QVector<QColor> colors;
                 colors.reserve(job->N);
 
-                if(job->oneColorFlag) {
-                    QColor color = colorMap.color(Element(job->oneColor));
+                for (int *op = job->VO, *e = (job->VO + job->N); op < e; op++) {
+                    QColor color = colorMap.color(elements[*op]);
                     color.setAlphaF(opacity);
-                    colors.insert(colors.end(), job->N, color);
-                }
-                else {
-                    for (int *cp = job->VC, *e = (job->VC + job->N); cp < e; cp++) {
-                        QColor color = colorMap.color(Element(*cp));
-                        color.setAlphaF(opacity);
-                        colors.push_back(color);
-                    }
+                    colors.push_back(color);
                 }
 
                 buffer->setColors(colors);
             }
 
             SurfaceJobFree(_ctx_holder.ctx, job);
+
             return buffer;
         }
 
@@ -185,7 +172,7 @@ public:
     boost::shared_ptr<AtomColorMap> colorMap;
     std::vector<Point3> points;
     std::vector<Real> radii;
-    std::vector<int> atomTypes;
+    std::vector<Element> elements;
     Real maxVdwRadius;
     bool maxVdwCalculated;
     GraphicsVertexBuffer *buffer;
@@ -215,12 +202,12 @@ GraphicsPymolSurfaceItem::GraphicsPymolSurfaceItem(const Molecule *molecule, Sol
     if(molecule){
         d->points.reserve(molecule->size());
         d->radii.reserve(molecule->size());
-        d->atomTypes.reserve(molecule->size());
+        d->elements.reserve(molecule->size());
 
         foreach(const Atom *atom, molecule->atoms()){
             d->points.push_back(atom->position());
             d->radii.push_back(atom->vanDerWaalsRadius());
-            d->atomTypes.push_back(atom->atomicNumber());
+            d->elements.push_back(atom->element());
         }
     }
 
@@ -245,14 +232,14 @@ void GraphicsPymolSurfaceItem::setMolecule(const Molecule *molecule)
     if(molecule){
         d->points.resize(molecule->size());
         d->radii.resize(molecule->size());
-        d->atomTypes.resize(molecule->size());
+        d->elements.resize(molecule->size());
 
         for(size_t i = 0; i < molecule->size(); i++){
             const Atom *atom = molecule->atom(i);
 
             d->points[i] = atom->position();
             d->radii[i] = atom->vanDerWaalsRadius();
-            d->atomTypes[i] = atom->atomicNumber();
+            d->elements[i] = atom->element();
         }
     }
 
@@ -367,13 +354,13 @@ void GraphicsPymolSurfaceItem::paint(GraphicsPainter *painter)
 
     if(!d->buffer){
         if(d->colorMode == SolidColor) {
-            d->buffer = calculateSurface(d->points, d->radii, std::vector<int>(),
+            d->buffer = calculateSurface(d->points, d->radii, std::vector<Element>(),
                                          maxVdwRadius(), d->probeRadius,
                                          d->quality, d->surfaceType, d->solventType,
                                          *d->colorMap, opacity());
         }
         else {
-            d->buffer = calculateSurface(d->points, d->radii, d->atomTypes,
+            d->buffer = calculateSurface(d->points, d->radii, d->elements,
                                          maxVdwRadius(), d->probeRadius,
                                          d->quality, d->surfaceType, d->solventType,
                                          *d->colorMap, opacity());
@@ -422,12 +409,10 @@ void GraphicsPymolSurfaceItem::setCalculated(bool calculated)
 Real GraphicsPymolSurfaceItem::maxVdwRadius()
 {
     if (!d->maxVdwCalculated) {
-        if (d->radii.empty()) {
-            d->maxVdwRadius = 0;
-        }
-        else {
+        if (!d->radii.empty())
             d->maxVdwRadius = *std::max_element(d->radii.begin(), d->radii.end());
-        }
+        else
+            d->maxVdwRadius = 0;
         d->maxVdwCalculated = true;
     }
 

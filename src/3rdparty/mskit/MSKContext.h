@@ -18,7 +18,6 @@ Z* -------------------------------------------------------------------
 #define _H_MSKIT_MSKCONTEXT
 
 typedef struct _CSphere CSphere;
-//typedef struct _CColor CColor;
 
 typedef struct _MSKContext {
 
@@ -28,10 +27,11 @@ typedef struct _MSKContext {
   
   CSphere *Sphere;
 
-  // Progress
+  /* Progress */
   int Stage;
   int Progress;
   
+  /* Settings */
   struct {
     float cSetting_hash_max;
     int cSetting_triangle_max_passes;

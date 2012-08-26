@@ -28,12 +28,10 @@ MSKContext *MSKContextNew()
   MSKContext *G = Calloc(MSKContext, 1);
   
   if (G) {
-    //ColorInit(G);
     SphereInit(G);
 
-    // Map Settings
+    /* Settings */
     SettingSet(G, cSetting_hash_max, 100);
-    // Triangle Settings
     SettingSet(G, cSetting_triangle_max_passes, 5);
     SettingSet(G, cSetting_fit_tolerance, 0.0000001F);
     SettingSet(G, cSetting_fit_iterations, 1000);
@@ -49,7 +47,6 @@ void MSKContextFree(MSKContext * G)
 {
   if (G) {
     SphereFree(G);
-    //ColorFree(G);
     FreeP(G);
   }
 }

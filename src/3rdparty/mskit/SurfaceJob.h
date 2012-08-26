@@ -58,11 +58,8 @@ typedef struct {
   /* results */
   int N, NT;
   float *V, *VN;
+  int *VO;
   int *T, *S;
-
-  int oneColorFlag, oneAlphaFlag;
-  int oneColor, *VC;
-  float oneAlpha, *VA;
 
 } SurfaceJob;
 
@@ -79,8 +76,6 @@ void SurfaceJobFree(MSKContext * G, SurfaceJob * I);
 
 int SurfaceJobRun(MSKContext * G, SurfaceJob * I);
 
-void SurfaceJobColoring(MSKContext *G, SurfaceJob * I, const int *colors, const float *transp);
-
-void SurfaceJobPurgeResult(MSKContext * G, SurfaceJob * I);
+int SurfaceJobOwnership(MSKContext *G, SurfaceJob * I);
 
 #endif
