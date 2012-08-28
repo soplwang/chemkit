@@ -117,7 +117,7 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
             if (surface_type != 1) {
                 indices.reserve(job->NT*3);
 
-                for (int *tp = job->T, *e = (job->T + job->NT*3); tp < e; tp++) {
+                for (int *tp = job->T, *e = (job->T + job->NT*3); tp < e; ++tp) {
                     indices.push_back(static_cast<unsigned short>(*tp));
                 }
             }
@@ -134,7 +134,7 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
                 QVector<QColor> colors;
                 colors.reserve(job->N);
 
-                for (int *op = job->VO, *e = (job->VO + job->N); op < e; op++) {
+                for (int *op = job->VO, *e = (job->VO + job->N); op < e; ++op) {
                     QColor color = colorMap.color(elements[*op]);
                     color.setAlphaF(opacity);
                     colors.push_back(color);
