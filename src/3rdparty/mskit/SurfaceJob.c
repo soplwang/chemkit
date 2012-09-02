@@ -440,15 +440,15 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
         if(ok && I->N && (surface_type == 0) && (circumscribe)) {
           int n_new = 0;
 
-          float neighborhood = 2.6 * point_sep; /* these constants need more tuning... */
-          float dot_cutoff = 0.666;
-          float insert_cutoff = 1.1 * point_sep;
+          float neighborhood = 2.6f * point_sep; /* these constants need more tuning... */
+          float dot_cutoff = 0.666f;
+          float insert_cutoff = 1.1f * point_sep;
 
           float map_cutoff = neighborhood;
           float *new_dot = VLAlloc(float, 1000);
 
-          if(map_cutoff < (2.9 * point_sep)) {  /* these constants need more tuning... */
-            map_cutoff = 2.9 * point_sep;
+          if(map_cutoff < (2.9f * point_sep)) {  /* these constants need more tuning... */
+            map_cutoff = 2.9f * point_sep;
           }
 
           {
@@ -535,7 +535,7 @@ int SurfaceJobRun(MSKContext * G, SurfaceJob * I)
 
         if(ok && I->N && (surface_type == 0) && (circumscribe)) {
 
-          float cutoff = 0.5 * probe_radius;
+          float cutoff = 0.5f * probe_radius;
 
           /* combine scribing with an atom proximity cleanup pass */
 
