@@ -2340,12 +2340,14 @@ int *TrianglePointsToSurface(MSKContext * G, float *v, float *vn, int n,
         ok = TriangleFill(I, v, vn, n, true);
       }
 
+#ifdef _DEBUG
       if(ok) {
         for(a = 0; a < n; a++)
           if(I->vertActive[a])
-		      PRINTFD(I->G, FB_Triangle)
+              PRINTFD(I->G, FB_Triangle)
                 " TrianglePTS-DEBUG: before fix %i %i\n", a, I->vertActive[a] ENDFD;
       }
+#endif
 
       if(ok)
         ok = TriangleTxfFolds(I, v, vn, n);
@@ -2353,10 +2355,14 @@ int *TrianglePointsToSurface(MSKContext * G, float *v, float *vn, int n,
       if(ok)
         ok = TriangleFixProblems(I, v, vn, n);
 
-      for(a = 0; a < n; a++)
-        if(I->vertActive[a])
-		  PRINTFD(I->G, FB_Triangle)
-            " TrianglePTS-DEBUG: after fix %i %i\n", a, I->vertActive[a] ENDFD;
+#ifdef _DEBUG
+      if(ok) {
+        for(a = 0; a < n; a++)
+          if(I->vertActive[a])
+              PRINTFD(I->G, FB_Triangle)
+                " TrianglePTS-DEBUG: after fix %i %i\n", a, I->vertActive[a] ENDFD;
+      }
+#endif
 
       if(ok) {
         if(cavity_mode) {

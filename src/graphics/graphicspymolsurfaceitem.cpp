@@ -99,8 +99,8 @@ GraphicsVertexBuffer* calculateSurface(const std::vector<Point3>& points,
         SurfaceJob *job = SurfaceJobNew(_ctx_holder.ctx, coord, atom_info,
                                         max_vdw, probe_radius,
                                         surface_quality, surface_type, surface_solvent,
-                                        10, 0, 7.0F,
-                                        -3.0F, 0.2F, 2.0F);
+                                        10, 0, 7.0F, -3.0F,
+                                        0.2F, 2.0F);
 
         if (job && SurfaceJobRun(_ctx_holder.ctx, job)) {
             QVector<Point3f> vertices;

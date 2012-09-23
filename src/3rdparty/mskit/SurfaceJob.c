@@ -65,7 +65,7 @@ SurfaceJob *SurfaceJobNew(MSKContext * G,
   	I->cavityCutoff = cavity_cutoff;
 
 #define SURFACE_QUALITY_BEST_SEP       0.25F
-#define SURFACE_QUALITY_NORMAL_SEP     0.5F
+#define SURFACE_QUALITY_NORMAL_SEP     0.55F
 #define SURFACE_QUALITY_POOR_SEP       0.85F
 #define SURFACE_QUALITY_MISERABLE_SEP  2.0F
 
